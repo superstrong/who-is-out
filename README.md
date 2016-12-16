@@ -2,6 +2,10 @@
 
 Automatically maintain a shared calendar of who and when everyone will be out of office, and email your team a daily digest summarizing out-of-office time for the next few weeks.
 
+## Usage
+
+To add your out-of-office event to the shared calendar and digest, simply invite the new `out@<yourdomain>` user to your event. This includes working from home, doctor appointment, conference, off-site meeting, etc.
+
 ## Installation
 
 ### As a G Suite admin
@@ -27,10 +31,6 @@ Now we can configure the scripts.
 - Replace the `recipient` variable in `trigger.gs` with your desired distribution address, such as `everyone@<yourdomain>`
 - Create an hourly trigger for `hourly()`
 - Create a daily trigger for `daily()`. By default it will run every day except Saturday.
-
-## Usage
-
-To add your out-of-office event to the digest, simply invite the new `out@<yourdomain>` user to your event. This includes working from home, doctor appointment, conference, off-site meeting, etc.
 
 ## Contributing
 
