@@ -1,10 +1,12 @@
 # Who is Out
 
-Automatically maintain a shared calendar of who and when everyone will be out of office, and email your team a daily digest summarizing out-of-office time for the next few weeks.
+No more pestering your coworkers about an upcoming vacation or forgetting to tell people about a doctor appointment because you "added it to your calendar" and forgot about it.
+
+This set of Google Apps Scripts automatically creates an aggregated calendar of who and when everyone will be out of office, then emails your team a daily digest summarizing out-of-office time for the next few weeks.
 
 ## Usage
 
-To add your out-of-office event to the shared calendar and digest, simply invite the new `out@<yourdomain>` user to your event. This includes working from home, doctor appointment, conference, off-site meeting, etc.
+Just invite the new `out@<yourdomain>` user to your event and it will show up in the digest. The title of the event will be replaced by a generic description based on keywords in the title, such as `working remote`, `sick/doctor`, `event/conference/meeting`, etc. -- whatever you want.
 
 ## Installation
 
@@ -48,8 +50,8 @@ Inspired by a daily digest we had at Cover in NYC (RIP).
 
 The foundation for this project is two old scripts cobbled together:
 
-- [Google Apps Script Vacation Calendar](https://github.com/sobodda/Google-Apps-Script-Vacation-Calendar) by Stephanie Obodda
-- [Daily Digest](https://ctrlq.org/code/19961-google-calendar-agenda-email) by [Amit Agarwal](https://github.com/labnol)
+- events.gs is based on [Google Apps Script Vacation Calendar](https://github.com/sobodda/Google-Apps-Script-Vacation-Calendar) by Stephanie Obodda
+- digest.gs is based on [Daily Digest](https://ctrlq.org/code/19961-google-calendar-agenda-email) by [Amit Agarwal](https://github.com/labnol)
 
 ## License
 
