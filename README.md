@@ -4,6 +4,8 @@ No more pestering your coworkers about an upcoming vacation or forgetting to tel
 
 This set of Google Apps Scripts automatically creates an aggregated calendar of who and when everyone will be out of office, then emails your team a daily digest summarizing out-of-office time for the next few weeks.
 
+![Screenshot](http://dropshare-superstrong.s3.amazonaws.com/XfBD5oLxNGgcJR/Screen-Shot-2016-12-16-at-9.55.43-PM.png)
+
 ## Usage
 
 Just invite the new `out@<yourdomain>` user to your event and it will show up in the digest. The title of the event will be replaced by a generic description based on keywords in the title, such as `working remote`, `sick/doctor`, `event/conference/meeting`, etc. -- whatever you want.
