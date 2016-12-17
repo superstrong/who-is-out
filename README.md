@@ -18,7 +18,7 @@ Just invite the new `out@<yourdomain>` user to your event and it will show up in
 - Give the user the following elevated privileges: **User Management Admin**
 
 ### As the new user
-- Create a second calendar that will be used to aggregate events. e.g., "Who is Out" or Out and Away"
+- Create a second calendar that will be used to aggregate events. e.g., "Who is Out" or "Out and Away"
 - Create a new Google Sheet (name doesn't matter), then open Tools -> Script editor...
 - In your script project, open Resources -> Developers Console Project...
 - An overlay will say "This script is currently associated with project:" ... click the link
