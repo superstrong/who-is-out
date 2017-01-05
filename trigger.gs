@@ -8,12 +8,9 @@ Triggers:
  daily: run once a day
 */
 
-// name of the calendar used to view Who is Out
-// e.g., "Out and Away"
-var destinationCalName = "[[name of calendar]]";
-
-// Send the digest to this address
-var recipient = "[[everyone@yourdomain]]";
+var destinationCalName = "Out and Away"; // name of the calendar used to view Who is Out
+var recipient = "everyone@yourdomain"; // send the digest to this address
+var webhook = "https://hooks.zapier.com/foo/bar"; // send notification message to this endpoint
 
 function hourly() {
   automateGone(destinationCalName);
@@ -22,4 +19,5 @@ function hourly() {
 function daily() {
   automateGoneDaily(destinationCalName);
   reminderDaily(destinationCalName, recipient);
+  notificationDaily(destinationCalName, webhook);
 }

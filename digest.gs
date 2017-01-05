@@ -1,6 +1,6 @@
 /*
 Functions:
- dailyReminder: aggregates the next 3 weeks of events on the calendar into a message
+ reminderDaily: aggregates the next 3 weeks of events on the calendar into a message
  addDays: simplifies add days from the start date
  formatTime: converts 24 hour based time to 12 hour
 */
@@ -65,7 +65,7 @@ function reminderDaily(destinationCalName, recipient) {
         if (weeklyEvents.length == 0) {
             message = 'There are no events in the calendar.';
         }
-        message = message + '</tbody></table><br>Invite ' + myCalId + ' to your event and it will be added to this digest automatically.';
+        message = message + '</tbody></table><br>All dates and times are US Eastern. Invite ' + myCalId + ' to your event and it will be added to this digest automatically.';
         MailApp.sendEmail(recipient, 'Out and Away: ' + prettyStartDateMM + '/' + startDateDD + '-' + prettyEndDateMM + '/' + endDateDD, message, { htmlBody: message });
     }
 }
@@ -77,9 +77,9 @@ function addDays(date, days) {
 }
 
 function formatTime(date) {
-    var d = new Date(date);
-    var hh = d.getHours();
-    var mm = d.getMinutes();
+    var dd = new Date(date);
+    var hh = dd.getHours();
+    var mm = dd.getMinutes();
     var mod = "AM";
 
     if (hh >= 12) {

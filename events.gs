@@ -8,6 +8,7 @@ Functions:
 
 var d = new Date();
 var timezone = "GMT-" + d.getTimezoneOffset() / 60;
+var todayShort = Utilities.formatDate(d, timezone, "M/d/yyyy");
 
 // triggered every hour to update the official calendar
 function automateGone(destinationCalName) {
@@ -91,6 +92,8 @@ function whoIsOut(theDate) {
             var onbehalf = "";
             var personEmail = (onbehalf == "") ? event.getOriginalCalendarId() : onbehalf;
             var personName = getUserName(personEmail);
+
+            // Note: this hardcodes table HTML formatting into the daily event
             peopleOut.push("<tr><td>" + personName + " is " + getEventType(event.getTitle()) + " " + durDisplay + "</td></tr>");
 
         }
@@ -142,12 +145,16 @@ function createGoneEvent(goneListArray, theDate) {
 
     var officialCal = CalendarApp.getOwnedCalendarsByName(destinationCalName)[0];
     var events = officialCal.getEventsForDay(theDate);
-
+  
     for (var e in events) {
         var event = events[e];
         var startDate = Utilities.formatDate(event.getStartTime(),
             (event.isAllDayEvent() === true ? "GMT" : timezone), "M/d/yyyy");
         var theDateshort = Utilities.formatDate(theDate, "GMT", "M/d/yyyy");
+
+        if (e == 0) {
+          var outToday = (theDateshort == todayShort ? true : false);
+        }
 
         if (event.getTitle() == "Who is Out") {
             event.deleteEvent(); //delete existing event before recreating

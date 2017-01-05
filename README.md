@@ -1,8 +1,12 @@
 # Who is Out
 
-No more pestering your coworkers about an upcoming vacation or forgetting to tell people about a doctor appointment because you "added it to your calendar" and forgot about it.
+No more pestering your coworkers repeatedly about an upcoming vacation or forgetting to tell people about a doctor appointment because you "added it to your calendar" and forgot about it.
 
-This set of Google Apps Scripts automatically creates an aggregated calendar of who and when everyone will be out of office, then emails your team a daily digest summarizing out-of-office time for the next few weeks.
+This set of Google Apps Scripts:
+
+- Automatically creates an aggregated calendar of who and when everyone will be out of office
+- Emails your team a daily digest summarizing out-of-office time for the next few weeks
+- Sends a daily notification to a webhook of your choice with today's scheduled out-of-office time -- e.g., ping a [Zapier](https://zapier.com) webhook, relay it to [Slack](https://slack.com)
 
 ## Usage
 
@@ -26,9 +30,10 @@ Enable the following API: **Admin SDK**
 
 Now we can configure the scripts.
 
-- Create `events.gs`, `digest.gs`, and `trigger.gs` and copy/paste the contents
-- In `trigger.gs`, replace the calendar and email variables with your own
+- Create `events.gs`, `digest.gs`, `trigger.gs`, and (optionally) `notification.gs` and copy/paste the contents
+- In `trigger.gs`, replace the calendar, email, and (optionally) webhook variables with your own
     - Note: Set the recipient to something you can test with, such as your own email address
+    - Note: Set the webhook to something you can test with. If you are not using the webhook, comment out `notificationDaily` from `daily()`
 - In `trigger.gs`, run `hourly()` and `daily()` manually. This will cause them to prompt you for permission, which you should approve.
 
 ### Set to autopilot
@@ -46,7 +51,7 @@ Now we can configure the scripts.
 
 ## History
 
-Inspired by a daily digest we had at Cover in NYC (RIP).
+Inspired by a daily digest we had at Cover in NYC (RIP). Upgraded through experience at [frame.ai](https://frame.ai).
 
 ## Credits
 
