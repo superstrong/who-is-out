@@ -1,6 +1,6 @@
 /*
 Functions:
- notificationDaily: aggregates today's events on the calendar (if any) into a Slack notification
+ notificationDaily: aggregates today's events on the calendar (if any) into Markdown-formatted text
  notify: sends the message body to the webhook
 */
 
