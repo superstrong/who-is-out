@@ -26,9 +26,9 @@ Just invite the new `out@<yourdomain>` user to your event and it will show up in
 - Create a new Google Sheet (name doesn't matter), then open Tools -> Script editor...
 - In your script project, open Resources -> Developers Console Project...
 - An overlay will say "This script is currently associated with project:" ... click the link
-Enable the following API: **Admin SDK**
+- Enable the following API: **Admin SDK**
 
-Now we can configure the scripts.
+Now we can create the scripts.
 
 - Create `events.gs`, `digest.gs`, `trigger.gs`, and (optionally) `notification.gs` and copy/paste the contents
 - In `trigger.gs`, replace the calendar, email, and (optionally) webhook variables with your own
