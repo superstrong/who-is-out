@@ -11,8 +11,8 @@ function notificationDaily(destinationCalName, webhook) {
   
     var myDate = new Date();
 
-    // Don't notify on Saturdays
-    if (myDate.getDay() == 6) {
+    // Don't notify on Saturdays and Sundays
+    if (myDate.getDay() == 6 || myDate.getDay() == 0) {
         return;
     } else {
         var startDate = new Date();
