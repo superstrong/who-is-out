@@ -68,8 +68,8 @@ function notificationDaily(destinationCalName, webhook) {
 
 // Remove the table tags that were hardcoded into the daily summaries by events.gs
 function reformat(s) {
-    s = s.replace("<tr>", "").replace("</tr>", "").trim();
-    s = s.replace("<td>", "").replace("</td>", "").trim();
+    s = s.replace(/<tr>/g, "").replace(/<\/tr>/g, "").trim();
+    s = s.replace(/<td>/g, "").replace(/<\/td>/g, "").trim();
     return s;
 }
 
