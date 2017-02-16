@@ -91,24 +91,14 @@ function whoIsOut(theDate) {
 
             var onbehalf = "";
             var personEmail = (onbehalf == "") ? event.getOriginalCalendarId() : onbehalf;
-            var personName = getUserName(personEmail);
 
             // Note: this hardcodes table HTML formatting into the daily event
-            peopleOut.push("<tr><td>" + personName + " is " + getEventType(event.getTitle()) + " " + durDisplay + "</td></tr>");
+            peopleOut.push("<tr><td>" + personEmail + " is " + getEventType(event.getTitle()) + " " + durDisplay + "</td></tr>");
 
         }
     }
     peopleOut.sort();
     return peopleOut;
-}
-
-// Requires Calendar API and Admin SDK be activated in G Suite
-// Requires the Admin SDK be activated for this project
-// Requires current user have User Management Admin privileges
-function getUserName(email) { 
-    var result = AdminDirectory.Users.get(email, { fields: 'name' });
-    var fullname = result.name.fullName;
-    return fullname;
 }
 
 // keywords to decide whether to list person as sick, vacaction, conference, or just out (default)

@@ -17,10 +17,8 @@ Just invite the new `out@<yourdomain>` user to your event and it will show up in
 ## Installation
 
 ### As a G Suite admin
-- Go to the [developer console](https://console.developers.google.com) and enable the following APIs: **Admin SDK**, **Google Calendar API**
+- Go to the [developer console](https://console.developers.google.com) and enable the following APIs: **Google Calendar API**
 - Log in to the [admin console](https://admin.google.com) and create a new user, such as `out@<yourdomain>`
-- Give the user the following elevated privileges: **User Management Admin**.
-    - If those privileges are too rich for your blod, create a new role (e.g., `Calendar Reader` and give it **Read** access to `users`, `organization units`, and `groups`. (TODO: understand exactly which of these is needed. It works at described but might still be more than necessary.)
 
 ### As the new user
 - Create a second calendar that will be used to aggregate events. e.g., "Who is Out" or "Out and Away"
