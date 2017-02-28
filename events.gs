@@ -1,7 +1,6 @@
 /*
 Functions:
- automateGone: creates/updates the next 7 days Who is Out events on official calendar
- automateGoneDaily: creates/updates next 90 days Who is Out events on the official calendar
+ automateGone: creates/updates the next x days Who is Out events on official calendar
  getUserName: retrieves full names from email addresses
  getEventType: replaces the original title with an out-of-office category
 */
@@ -10,29 +9,8 @@ var d = new Date();
 var timezone = "GMT-" + d.getTimezoneOffset() / 60;
 var todayShort = Utilities.formatDate(d, timezone, "M/d/yyyy");
 
-// triggered every hour to update the official calendar
-function automateGone(destinationCalName) {
-
-    var myDate = new Date();
-    myDate.setHours(0);
-    myDate.setMinutes(0);
-    myDate.setSeconds(0);
-    myDate.setDate(myDate.getDate() - 1);
-
-    for (i = 0; i < 7; i++) //update next 7 days
-    {
-        myDate.setDate(myDate.getDate() + 1);
-
-        if (myDate.getDay() !== 0 && myDate.getDay() != 6) //not a weekend
-        {
-            var goneListArray = whoIsOut(myDate);
-            createGoneEvent(goneListArray, myDate);
-        }
-    }
-}
-
-// triggered once/day to update the official calendar further out
-function automateGoneDaily(destinationCalName) {
+// Update the calendar(s)
+function automateGone(targetCalendar, targetGroup, days) {
 
     var myDate = new Date();
     myDate.setHours(0);
@@ -42,15 +20,14 @@ function automateGoneDaily(destinationCalName) {
     var goneListArray = whoIsOut(myDate);
     myDate.setDate(myDate.getDate() - 1);
   
-    //update calendar for next 90 days, starting with today
-    for (i = -1; i < 91; i++) {
+    //update calendar for next x days, starting with today
+    for (i = -1; i < days; i++) {
         myDate.setDate(myDate.getDate() + 1);
 
-        if (myDate.getDay() !== 0 && myDate.getDay() != 6) {
-            var goneListArray = whoIsOut(myDate);
-            /*goneListArray also declared in func(automateGone), required
-                in this function as well*/
-            createGoneEvent(goneListArray, myDate);
+        if (myDate.getDay() !== 0 && myDate.getDay() != 6) //not a weekend
+        {
+            var goneListArray = whoIsOut(myDate, targetGroup);
+            createGoneEvent(goneListArray, myDate, targetCalendar);
         }
     }
 }
@@ -63,39 +40,47 @@ function whoIsOut(theDate) {
     for (var e in events) {
         var event = events[e];
         var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
-
+        var groupMember;
+      
         if ((theDate >= event.getStartTime()) || duration < 1)
         /*weed out future all-day events mistakenly pulled by broken 
         getEventsForDay function*/
         {
-
-            if (duration > 1) //multi-day event - delete one day from end time
-            {
-                var endDate = event.getEndTime();
-                endDate.setDate(endDate.getDate() - 1);
-                var durDisplay = Utilities.formatDate(event.getStartTime(),
-                    (event.isAllDayEvent() === true ? "GMT" : timezone),
-                    "M/d") + " - " + Utilities.formatDate(endDate,
-                    (event.isAllDayEvent() === true ? "GMT" : timezone), "M/d");
-            } else if (duration < 1) //part day
-            {
-                var durDisplay = Utilities.formatDate(event.getStartTime(),
-                    (event.isAllDayEvent() === true ? "GMT" : timezone),
-                    "h:mm a") + " - " + Utilities.formatDate(event.getEndTime(),
-                    (event.isAllDayEvent() === true ? "GMT" : timezone),
-                    "h:mm a");
-            } else //all day
-            {
-                var durDisplay = "all day";
-            }
-
             var onbehalf = "";
             var personEmail = (onbehalf == "") ? event.getOriginalCalendarId() : onbehalf;
-            var personName = getUserName(personEmail);
-
-            // Note: this hardcodes table HTML formatting into the daily event
-            peopleOut.push("<tr><td>" + personName + " is " + getEventType(event.getTitle()) + " " + durDisplay + "</td></tr>");
-
+            var groupMember = null;
+            try {
+                groupMember = AdminDirectory.Members.get(targetGroup, personEmail);
+            }
+            catch (e) {
+                groupMember = null;
+            }
+          
+            if (groupMember != null) {
+                if (duration > 1) //multi-day event - delete one day from end time
+                {
+                    var endDate = event.getEndTime();
+                    endDate.setDate(endDate.getDate() - 1);
+                    var durDisplay = Utilities.formatDate(event.getStartTime(),
+                        (event.isAllDayEvent() === true ? "GMT" : timezone),
+                        "M/d") + " - " + Utilities.formatDate(endDate,
+                        (event.isAllDayEvent() === true ? "GMT" : timezone), "M/d");
+                } else if (duration < 1) //part day
+                {
+                    var durDisplay = Utilities.formatDate(event.getStartTime(),
+                        (event.isAllDayEvent() === true ? "GMT" : timezone),
+                        "h:mm a") + " - " + Utilities.formatDate(event.getEndTime(),
+                        (event.isAllDayEvent() === true ? "GMT" : timezone),
+                        "h:mm a");
+                } else //all day
+                {
+                    var durDisplay = "all day";
+                }
+              
+                var personName = getUserName(personEmail);
+                // Note: this hardcodes table HTML formatting into the daily event
+                peopleOut.push("<tr><td>" + personName + " is " + getEventType(event.getTitle()) + " " + durDisplay + "</td></tr>");
+            }
         }
     }
     peopleOut.sort();
@@ -104,8 +89,8 @@ function whoIsOut(theDate) {
 
 // Requires Calendar API and Admin SDK be activated in G Suite
 // Requires the Admin SDK be activated for this project
-// Requires current user have User Management Admin privileges
-function getUserName(email) { 
+// Requires current user have user and calendar read privileges
+function getUserName(email) {
     var result = AdminDirectory.Users.get(email, { fields: 'name' });
     var fullname = result.name.fullName;
     return fullname;
@@ -143,7 +128,7 @@ function createGoneEvent(goneListArray, theDate) {
         return false;
     }
 
-    var officialCal = CalendarApp.getOwnedCalendarsByName(destinationCalName)[0];
+    var officialCal = CalendarApp.getOwnedCalendarsByName(targetCalendar)[0];
     var events = officialCal.getEventsForDay(theDate);
   
     for (var e in events) {

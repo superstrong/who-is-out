@@ -66,7 +66,7 @@ function reminderDaily(destinationCalName, recipient) {
             message = 'There are no events in the calendar.';
         }
         message = message + '</tbody></table><br>All dates and times are US Eastern. Invite ' + myCalId + ' to your event and it will be added to this digest automatically.';
-        MailApp.sendEmail(recipient, 'Out and Away: ' + prettyStartDateMM + '/' + startDateDD + '-' + prettyEndDateMM + '/' + endDateDD, message, { htmlBody: message });
+        MailApp.sendEmail(recipient, prefix + 'Out and Away: ' + prettyStartDateMM + '/' + startDateDD + '-' + prettyEndDateMM + '/' + endDateDD, message, { htmlBody: message });
     }
 }
 

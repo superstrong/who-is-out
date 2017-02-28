@@ -7,7 +7,7 @@ Functions:
 var myCal = CalendarApp.getDefaultCalendar();
 var myCalId = myCal.getId();
 
-function notificationDaily(destinationCalName, webhook) {
+function notificationDaily(targetCalendar, targetWebhook) {
   
     var myDate = new Date();
 
@@ -24,7 +24,7 @@ function notificationDaily(destinationCalName, webhook) {
         var endDateYY = addDays(startDate, 1).getYear();
         var endDate = new Date(endDateYY, endDateMM, endDateDD);
     
-        var cal = CalendarApp.getOwnedCalendarsByName(destinationCalName)[0];
+        var cal = CalendarApp.getOwnedCalendarsByName(targetCalendar)[0];
         var weeklyEvents = cal.getEvents(startDate, endDate);
     
         var eventTitle = [];
@@ -62,7 +62,7 @@ function notificationDaily(destinationCalName, webhook) {
         } else {
             notification = 'I see no human outages scheduled for today. Invite ' + myCalId + ' to your event and it will be added to this notification automatically.';
         }
-        notify(notification, webhook);
+        notify(notification, targetWebhook);
     }
 }
 
