@@ -20,7 +20,7 @@ Triggers:
 */
 var groups = 
 {"data":[
-  {"group":"everyone@yourdomain","calendar":"Out and Away","list":"everyone+out@yourdomain","label":null,},
+  {"group":"everyone@yourdomain","calendar":"Out and Away","list":"everyone+out@yourdomain","label":null,"webhook":"https://hooks.zapier.com/hooks/catch/foobar"},
   {"group":"management@yourdomain","calendar":"Out and Away (Management)","list":"management+out@yourdomain","label":"Mgmt"}
  ]};
 
