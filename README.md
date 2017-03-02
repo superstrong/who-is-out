@@ -26,14 +26,14 @@ Just invite the new `out@<yourdomain>` user to your event and it will show up in
 ### As the new user
 - Create a secondary calendar that will be used to aggregate events for each group. e.g., "Out and Away", "Out and Away (Eng)", "Out and Away (Mgmt)", etc.
 - Create a new Google Sheet (name doesn't matter), then open Tools -> Script editor...
-- In your script project, open Resources -> Developers Console Project...
-- An overlay will say "This script is currently associated with project:" ... click the link
-- Enable the following API: **Admin SDK**
+- In your script project, open Resources -> Cloud Platform Project...
+- An overlay will say "This script is currently associated with project:" ... click the link. If there is no link, give the project a name first, then click the resulting link.
+- Search for and enable the following API: **Admin SDK**
 
-Now we can create the scripts.
+Close out of this to return to your script project. Now we can create the scripts.
 
-- Create `events.gs`, `digest.gs`, `trigger.gs`, and (optionally) `notification.gs` and copy/paste the contents
-- In `trigger.gs`, replace the data configuration with your own values.
+- Create each of these empty scripts (File -> New -> Script file): `events.gs`, `digest.gs`, `trigger.gs`, and (optionally) `notification.gs`. Copy/paste the contents from here to there, completely overwriting the default `myFunction` code.
+- In `trigger.gs`, replace the `data` configuration with your own values.
     - Note: Set the `list` value to something you can test with, such as your own email address
     - Note: Set the webhook to something you can test with. If you are not using the webhook, comment out `notificationDaily` from `daily()`
 - In `trigger.gs`, run `hourly()` and `daily()` manually. This will cause them to prompt you for permission, which you should approve.
