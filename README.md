@@ -30,7 +30,13 @@ Just invite the new `out@<yourdomain>` user to your event and it will show up in
 - An overlay will say "This script is currently associated with project:" ... click the link. If there is no link, give the project a name first, then click the resulting link.
 - Search for and enable the following API: **Admin SDK**
 
-Close out of this to return to your script project. Now we can create the scripts.
+Close out of this to return to your script project. 
+
+- Open Resources -> Advanced Google services...
+- Enable `Admin Directory API` and `Calendar API`
+- Click OK
+
+Now we can create the scripts.
 
 - Create each of these empty scripts (File -> New -> Script file): `events.gs`, `digest.gs`, `trigger.gs`, and (optionally) `notification.gs`. Copy/paste the contents from here to there, completely overwriting the default `myFunction` code.
 - In `trigger.gs`, replace the `data` configuration with your own values.
