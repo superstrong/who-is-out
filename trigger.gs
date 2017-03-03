@@ -58,6 +58,6 @@ function daily() {
 }
 
 function labeler(label) {
-  label != null ? label = "[" + label + "] " : label = "";
+  label != null ? label = label + " - " : label = "";
   return label;
 }
