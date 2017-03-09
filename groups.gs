@@ -36,14 +36,14 @@ function generateGroupTree(group) {
         groupMembers = getGroupMembers(group);
         for (i = 0; i < groupMembers.length; ++i) {
             email = groupMembers[i];
-            toVisit.splice(toVisit.length, 0, email);
+            toVisit.push(toVisit.length, 0, email);
         }
     }
 
     var groups = [];
     for (var k in containedGroups) {
         if (containedGroups.hasOwnProperty(k)) {
-            groups.splice(groups.length, 0, k);
+            groups.push(groups.length, 0, k);
         }
     }
     return groups;
