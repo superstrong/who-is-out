@@ -28,12 +28,12 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 - Create a new Google Sheet (name doesn't matter), then open Tools -> Script editor...
 - In your script project, open Resources -> Cloud Platform Project...
 - An overlay will say "This script is currently associated with project:" ... click the link. If there is no link, give the project a name first, then click the resulting link.
-- Enable the following API: **Admin SDK**
+- Search for and enable the following API: **Admin SDK**
 
-Close out of this to return to your script project.
+Close out of this to return to your script project. 
 
 - Open Resources -> Advanced Google services...
-- Enable Admin Directory API and Calendar API
+- Enable `Admin Directory API` and `Calendar API`
 - Click OK
 
 Now we can create the scripts.
