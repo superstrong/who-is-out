@@ -1,13 +1,13 @@
 /*
 Functions:
- notificationDaily: aggregates today's events on the calendar (if any) into Markdown-formatted text
+ notificationDaily: aggregates today's events on the calendar (if any) into Slack-Markdown-formatted text
  notify: sends the message body to the webhook
 */
 
 var myCal = CalendarApp.getDefaultCalendar();
 var myCalId = myCal.getId();
 
-function notificationDaily(targetCalendar, targetWebhook) {
+function notificationDaily(pCal, targetWebhook) {
   
     var myDate = new Date();
 
@@ -24,7 +24,7 @@ function notificationDaily(targetCalendar, targetWebhook) {
         var endDateYY = addDays(startDate, 1).getYear();
         var endDate = new Date(endDateYY, endDateMM, endDateDD);
     
-        var cal = CalendarApp.getOwnedCalendarsByName(targetCalendar)[0];
+        var cal = CalendarApp.getOwnedCalendarsByName(pCal)[0];
         var weeklyEvents = cal.getEvents(startDate, endDate);
     
         var eventTitle = [];

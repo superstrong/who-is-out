@@ -1,63 +1,106 @@
 /*
 Functions:
- hourly: runs automateGone to update next 7 days of Who is Out
- daily: runs automateGone to update next 30 days of Who is Out,
-   then runs reminderDaily (email digest),
-   then runs notificationDaily (chat notification)
-
-Triggers:
- hourly: run once an hour
- daily: run once a day
+ hourly: updates Out of office calendars
+ daily: updates Out of office calendars, then sends the email digest and chat notification (if applicable)
 */
 
 /*
-"Groups" data format:
-1. Group user belongs to
-2. Secondary calendar used to aggregate events for this group
-3. Distribution list for emailing the outage digest
-4. Prefix for email digest subject line
-5. (optional) Webhook for notifying today's human outages
+"Groups" JSON below
+1. group: For every event, check whether the user belongs to this group
+2. privateCal: A secondary calendar used to aggregate events. Used for emails and notifications.
+3. sharedCal: A shareable calendar that replicates every relevant event
+4. recipients: The email digest recipient(s). Separate multiple addresses with a comma.
+5. label: The subject-line prefix for the email digest
+6. (optional) webhook: for notifying today's human outages
 */
-var groups = 
-{"data":[
-  {"group":"everyone@yourdomain","calendar":"Out and Away","list":"everyone+out@yourdomain","label":null,},
-  {"group":"management@yourdomain","calendar":"Out and Away (Management)","list":"management+out@yourdomain","label":"Mgmt"}
- ]};
 
-var days;
+var groups = 
+{
+  "data":[
+    {
+      "group":"everyone@yourdomain.com",
+      "privateCal":"ooo - <group>",
+      "sharedCal":"Out of office (Group)",
+      "recipients":"everyone@yourdomain.com,someone@personaldomain.com",
+      "label":null,
+      "webhook":"https://hooks.zapier.com/hooks/catch/foobar"
+    },
+    {
+      "group":"management@yourdomain.com",
+      "privateCal":"ooo - mgmt",
+      "sharedCal":"Out of office (Mgmt)",
+      "recipients":"management@yourdomain.com",
+      "label":"Management"
+    }
+  ]
+};
+
+var domainName = "yourdomain.com";
+var daysUpdate;
+var emailDuration;
 var groupsCount = Object.keys(groups.data).length;
 var targetGroup;
-var targetCalendar;
+var targetGroups;
+var pCal;
+var sCal;
 var targetList;
 var label;
 
 function hourly() {
-  days = 7; // update the calendar for next 7 days
+  daysUpdate = 14; // update the calendar for next 14 days
   for (var i = 0; i < groupsCount; i++) {
     targetGroup = groups.data[i].group;
-    targetCalendar = groups.data[i].calendar;
+    pCal = groups.data[i].privateCal;
+    sCal = groups.data[i].sharedCal;
     
-    automateGone(targetCalendar, targetGroup, days);
+    targetGroups = containedGroups(targetGroup);
+    automateGone(pCal, targetGroup, sCal, daysUpdate);
   }
 }
 
 function daily() {
-  days = 30; // update the calendar for next month
+  daysUpdate = 30; // update the calendar for next 30 days
+  emailDuration = 14; // include 14 days in the email digest
   for (var i = 0; i < groupsCount; i++) {
     targetGroup = groups.data[i].group;
-    targetCalendar = groups.data[i].calendar;
-    targetList = groups.data[i].list;
+    pCal = groups.data[i].privateCal;
+    sCal = groups.data[i].sharedCal;
+    targetList = groups.data[i].recipients;
     label = groups.data[i].label;
     prefix = labeler(label);
     targetWebhook = groups.data[i].webhook;
 
-    automateGone(targetCalendar, targetGroup, days);
-    reminderDaily(targetCalendar, targetList, prefix);
-    notificationDaily(destinationCalName, targetWebhook);
+    targetGroups = containedGroups(targetGroup);
+    automateGone(pCal, targetGroup, sCal, daysUpdate);
+    reminderDaily(pCal, targetList, prefix, emailDuration);
+    //notificationDaily(destinationCalName, targetWebhook);
   }
 }
 
 function labeler(label) {
-  label != null ? label = "[" + label + "] " : label = "";
+  label != null ? label = label + " - " : label = "";
   return label;
+}
+
+// Rebuild the list of Groups displayed in the spreadsheet
+function updateGroups() {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetData = ss.getSheetByName("Sheet1")
+    var header = ['Parent Group', 'Contained Groups'];
+    sheetData.clear();
+    sheetData.appendRow(header).setFrozenRows(1);
+    for (var i = 0; i < groupsCount; i++) {
+        targetGroup = groups.data[i].group;
+        rows = generateGroupTree(targetGroup);
+        for (j = 0; j < rows.length; j++) {
+            rows[j] = [targetGroup, rows[j]];
+        }
+        if (rows.length > 0)
+        {
+            var Avals = ss.getRange("A1:A").getValues();
+            var Alast = Avals.filter(String).length;
+            var startRow = Alast + 1;
+            sheetData.getRange(startRow, 1, rows.length, header.length).setValues(rows);
+        }
+    }
 }

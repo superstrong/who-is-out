@@ -1,16 +1,19 @@
 /*
 Functions:
- reminderDaily: aggregates the next 3 weeks of events on the calendar into a message
+ reminderDaily: aggregates the next 2 weeks of events on the calendar into a message
  addDays: simplifies add days from the start date
  formatTime: converts 24 hour based time to 12 hour
 */
 
+var maintainer = "you@yourdomain.com";
+
 var myCal = CalendarApp.getDefaultCalendar();
 var myCalId = myCal.getId();
 
-function reminderDaily(destinationCalName, recipient) {
+function reminderDaily(pCal, recipient, prefix, emailDuration) {
   
     var myDate = new Date();
+    var timezone = "All dates and times are US Eastern. ";
 
     // Don't send the email on Saturdays
     if (myDate.getDay() == 6) {
@@ -20,16 +23,17 @@ function reminderDaily(destinationCalName, recipient) {
         var startDateDD = startDate.getDate();
         var startDateMM = startDate.getMonth();
     
-        // Gather events for next 3 weeks
-        var endDateDD = addDays(startDate, 21).getDate();
-        var endDateMM = addDays(startDate, 21).getMonth();
-        var endDateYY = addDays(startDate, 21).getYear();
+        // Gather events for next x days
+        var endDateDD = addDays(startDate, emailDuration).getDate();
+        var endDateMM = addDays(startDate, emailDuration).getMonth();
+        var endDateYY = addDays(startDate, emailDuration).getYear();
         var endDate = new Date(endDateYY, endDateMM, endDateDD);
     
         var prettyStartDateMM = startDateMM + 1;
         var prettyEndDateMM = endDateMM + 1;
     
-        var cal = CalendarApp.getOwnedCalendarsByName(destinationCalName)[0];
+        var cal = CalendarApp.getOwnedCalendarsByName(pCal)[0];
+      Logger.log("start: " + startDate + " ... end: " + endDate);
         var weeklyEvents = cal.getEvents(startDate, endDate);
     
         var eventTitle = [];
@@ -63,10 +67,11 @@ function reminderDaily(destinationCalName, recipient) {
         }
     
         if (weeklyEvents.length == 0) {
-            message = 'There are no events in the calendar.';
+            message = 'There are no events.<br>';
+            timezone = '';
         }
-        message = message + '</tbody></table><br>All dates and times are US Eastern. Invite ' + myCalId + ' to your event and it will be added to this digest automatically.';
-        MailApp.sendEmail(recipient, prefix + 'Out and Away: ' + prettyStartDateMM + '/' + startDateDD + '-' + prettyEndDateMM + '/' + endDateDD, message, { htmlBody: message });
+      message = message + '</tbody></table><br>' + timezone + 'Invite ' + myCalId + ' to your event and it will be added to this digest automatically.<br><br><br><span style="font-size:11px;">Questions? Email the <a href="mailto:' + maintainer + '">maintainer</a></span>.';
+        MailApp.sendEmail(recipient, prefix + 'Out of office: ' + prettyStartDateMM + '/' + startDateDD + '-' + prettyEndDateMM + '/' + endDateDD, message, { htmlBody: message });
     }
 }
 
