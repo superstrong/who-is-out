@@ -26,14 +26,20 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 ### As the new user
 - For each group that wants to use this, create two secondary calendars: one to aggregate events, used only for the email digest and not shared (e.g., "ooo - eng", "ooo - mgmt"), and a friendly looking one that will have a copy of everyone's specific OOO events and can be shared back with the group (e.g., "Out and Away", "Out and Away (Eng)", "Out and Away (Mgmt)", etc.
 - Create a new Google Sheet (name doesn't matter), then open Tools -> Script editor...
-- In your script project, open Resources -> Developers Console Project...
-- An overlay will say "This script is currently associated with project:" ... click the link
+- In your script project, open Resources -> Cloud Platform Project...
+- An overlay will say "This script is currently associated with project:" ... click the link. If there is no link, give the project a name first, then click the resulting link.
 - Enable the following API: **Admin SDK**
+
+Close out of this to return to your script project.
+
+- Open Resources -> Advanced Google services...
+- Enable Admin Directory API and Calendar API
+- Click OK
 
 Now we can create the scripts.
 
-- Create `events.gs`, `digest.gs`, `trigger.gs`, `groups.gs`, `compare.gs`, and (optionally) `notification.gs` and copy/paste the contents
-- In `trigger.gs`, update the data configuration and `domainName` variable. Optionally, change the defaults on `daysUpdate` and `emailDuration`.
+- Create each of these empty scripts (File -> New -> Script file): `events.gs`, `digest.gs`, `trigger.gs`, `groups.gs`, `compare.gs`, and (optionally) `notification.gs`. Copy/paste the contents from here to there, completely overwriting the default myFunction code.
+- In `trigger.gs`, update the `data` configuration and `domainName` variable. Optionally, change the defaults on `daysUpdate` and `emailDuration`.
     - Note: Set the `list` value to something you can test with, such as your own email address
     - Note: Set the webhook to something you can test with. If you are not using the webhook, comment out `notificationDaily` from `daily()`
 
