@@ -1,214 +1,256 @@
-/*
-Functions:
- automateGone: creates/updates the next x days Who is Out events on official calendar
- deleteSharedEvents: clears the shared calendar before replication
- replicate: copies events to shared calendars
- getUserName: retrieves full names from email addresses
- getEventType: replaces the original title with an out-of-office category
-*/
-
-var d = new Date();
-var timezone = "GMT-" + d.getTimezoneOffset() / 60;
-var todayShort = Utilities.formatDate(d, timezone, "M/d/yyyy");
-
-// Update the calendar(s)
-function automateGone(pCal, targetGroup, sCal, daysUpdate) {
-  
-    Date.prototype.addDays = function(days) {
-      var dat = new Date(this.valueOf());
-      dat.setTime(dat.getTime() + (days * 86400000));
-      return dat;
-    }
-  
-    var myDate = new Date();
-    myDate.setHours(0);
-    myDate.setMinutes(0);
-    myDate.setSeconds(0);
-
-    // Delete existing events on the shared calendars
-    deleteSharedEvents(pCal);
-    deleteSharedEvents(sCal);
-
-    myDate.setDate(myDate.getDate() - 1);
-  
-    //update calendars for next x days, starting with today
-    for (i = -1; i < daysUpdate; i++) {
-        myDate.setDate(myDate.getDate() + 1);
-
-        if (myDate.getDay() !== 0 && myDate.getDay() != 6) //not a weekend
-        {
-            var goneListArray = whoIsOut(myDate, targetGroup, sCal);
-            createGoneEvent(goneListArray, myDate, pCal);
-        }
-    }
-}
-
-function whoIsOut(theDate, targetGroup, sCal) {
-    var peopleOut = new Array();
-    var myCal = CalendarApp.getDefaultCalendar();
-    var events = myCal.getEventsForDay(theDate);
-    sCal = sCal;
-
-    for (var e = 0; e < events.length; e++) {
-        var event = events[e];
-        var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
-        var groupMember;
-      
-        if ((theDate >= event.getStartTime()) || duration < 1)
-        /*weed out future all-day events mistakenly pulled by broken 
-        getEventsForDay function*/
-        {
-            var onbehalf = "";
-            var personEmail = (onbehalf == "") ? event.getOriginalCalendarId() : onbehalf;
-
-            var groupMember = false;
-            groupMember = compare(targetGroups, personEmail);
-          
-            if (groupMember != false) {
-              
-                var personName = getUserName(personEmail);
-              
-                // Copy event to the shared calendars
-                replicate(event, duration, theDate, personName);
-              
-                if (duration > 1) //multi-day event - delete one day from end time
-                {
-                    var endDate = event.getEndTime();
-                    endDate.setDate(endDate.getDate() - 1);
-                    var durDisplay = Utilities.formatDate(event.getStartTime(),
-                        (event.isAllDayEvent() === true ? "GMT" : timezone),
-                        "M/d") + " - " + Utilities.formatDate(endDate,
-                        (event.isAllDayEvent() === true ? "GMT" : timezone), "M/d");
-                } else if (duration < 1) //part day
-                {
-                    var durDisplay = Utilities.formatDate(event.getStartTime(),
-                        (event.isAllDayEvent() === true ? "GMT" : timezone),
-                        "h:mm a") + " - " + Utilities.formatDate(event.getEndTime(),
-                        (event.isAllDayEvent() === true ? "GMT" : timezone),
-                        "h:mm a");
-                } else //all day
-                {
-                    var durDisplay = "all day";
-                }
-
-                // Note: this hardcodes table HTML formatting into the daily event
-                peopleOut.push("<tr><td>" + personName + " is " + getEventType(event.getTitle()) + " " + durDisplay + "</td></tr>");
-            }
-        }
-    }
-    peopleOut.sort();
-    return peopleOut;
-}
-
 // Deletes existing events from the shared calendars
-function deleteSharedEvents(cal) {
-  var fromDate = new Date();
-  var toDate = fromDate.addDays(daysUpdate)
-  var dCal = cal;
-  var dCalendar = CalendarApp.getCalendarsByName(dCal)[0];
-  var dEvents = dCalendar.getEvents(fromDate, toDate);
+function deleteEvents(s, a) {
   
-  for (var i = 0; i < dEvents.length; i++) {
-    var ev = dEvents[i];
-    ev.deleteEvent();
+  var from = s.startDate;
+  var to = s.endDate;
+  
+  var pCal = a.pCal;
+  var pCalendar = CalendarApp.getCalendarsByName(pCal)[0];
+  var pEvents = pCalendar.getEvents(from, to);
+  
+  var sCal = a.sCal;
+  var sCalendar = CalendarApp.getCalendarsByName(sCal)[0];
+  var sEvents = sCalendar.getEvents(from, to);
+  
+  for (var d = 0; d < pEvents.length; d++) {
+  var ev = pEvents[d];
+  ev.deleteEvent();
+  }
+  
+  for (var d = 0; d < sEvents.length; d++) {
+  var ev = sEvents[d];
+  ev.deleteEvent();
+  }
+}
+
+// Use a specific Gcal method to create multi-day events
+function createMultiDayEvent(cal, title, start, end) {
+  
+  function dateString_(date, timeZone) {
+   // format like Apr 21 2013
+   var format = ' MMM dd yyyy';
+   var str = Utilities.formatDate(date, timeZone, format);
+   return str;
+  }
+  
+  var zone = cal.getTimeZone();
+  var description = Utilities.formatString( '%s from %s to %s', title, dateString_( start, zone ), dateString_( end, zone ));
+  return cal.createEventFromDescription(description);
+}
+
+// Copy events from the invited user to group shared calendars
+function replicate(event, duration, today, name, a) {
+  var rEvent = event;
+  var cal = CalendarApp.getCalendarsByName(a.sCal)[0];
+  var title = name + ' - ' + event.getTitle();
+  var allDay = event.isAllDayEvent();
+  if (allDay === true) {
+  // If it's all-day event, check whether it's more than one day
+  if (duration > 1) {
+    // If more than one day, requires a hacky creation method (see createMultiDayEvent)
+    var start = event.getAllDayStartDate();
+    var end = addDays(start, duration);
+    var startGap = new Date(today) - new Date(start);
+    
+    // Don't create another multi-day event if the event started on a previous day
+    if (startGap > 0) {
+    return;
+    } else {
+    createMultiDayEvent(cal, title, start, end);
+    }
+  } else {
+    cal.createAllDayEvent(title, event.getAllDayStartDate());
+  }
+  } else {
+  cal.createEvent(title, event.getStartTime(), event.getEndTime());
   }
 }
 
 // Turn email address into full name
 function getUserName(email) {
-    var result = AdminDirectory.Users.get(email, { fields: 'name' });
-    var fullname = result.name.fullName;
-    return fullname;
+  var result = AdminDirectory.Users.get(email, { fields: 'name' });
+  var fullname = result.name.fullName;
+  return fullname;
 }
 
-// Copy events from the invited user to group shared calendars
-function replicate(event, duration, theDate, name) {
-  var rEvent = event;
-  var rCal = CalendarApp.getCalendarsByName(sCal)[0];
-  var rTitle = name + ' - ' + rEvent.getTitle();
-  var allDay = rEvent.isAllDayEvent();
-  if (allDay === true) {
-    // If it's all-day event, check whether it's more than one day
-    if (duration > 1) {
-      // If more than one day, requires a hacky creation method (see createMultiDayEvent)
-      var start = rEvent.getAllDayStartDate();
-      var end = start.addDays(duration);
-      end = new Date(end - 1);
-      var startGap = new Date(theDate) - new Date(start);
-      
-      // Don't create another multi-day event if the event started on a previous day
-      if (startGap > 0) {
-      } else {
-        createMultiDayEvent(rCal, rTitle, start, end);
-      }
-    } else {
-      var newEvent = rCal.createAllDayEvent(rTitle, rEvent.getAllDayStartDate());
-    }
-  } else {
-    var newEvent = rCal.createEvent(rTitle, rEvent.getStartTime(), rEvent.getEndTime());
+function formatTheDate (event, duration, s) {
+  if (duration > 1) { //multi-day event - delete one day from end time
+    var endDate = event.getEndTime();
+    endDate.setDate(endDate.getDate() - 1);
+    var durDisplay =
+      Utilities.formatDate(event.getStartTime(),
+        (event.isAllDayEvent() === true ? "GMT" : offset), "M/d")
+          + " - " 
+          + Utilities.formatDate(endDate, (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d");
+  } else if (duration < 1) {
+    var durDisplay = 
+      Utilities.formatDate(event.getStartTime(),
+        (event.isAllDayEvent() === true ? "GMT" : s.offset), "h:mm a")
+          + " - " + Utilities.formatDate(event.getEndTime(), (event.isAllDayEvent() === true ? "GMT" : s.offset), "h:mm a");
+  } else //all day
+  {
+    var durDisplay = "all day";
   }
+  return durDisplay;
 }
 
 // keywords to decide whether to list person as sick, vacaction, conference, or just out (default)
 function getEventType(theTitle) {
-    eventType = "";
+  eventType = "";
 
-    if (theTitle.search(/wfh|wfr/i) > -1) {
-        eventType = "working remote";
-    } else if (theTitle.search(/sick|doctor|dr\.|dentist|medical/i) > -1) {
-        eventType = "sick / has doctor appointment";
-    } else if (theTitle.search(/vacation|vaca|vac|holiday/i) > -1) {
-        eventType = "on vacation";
-    } else if (theTitle.search(/conference|training|seminar|workshop|conf|session|meeting/i) > -1) {
-        eventType = "at a meeting/conference/training";
-    } else {
-        eventType = "out";
-    }
-    return eventType;
+  if (theTitle.search(/wfh|wfr/i) > -1) {
+    eventType = "working remote";
+  } else if (theTitle.search(/sick|doctor|dr\.|dentist|medical/i) > -1) {
+    eventType = "sick / has doctor appointment";
+  } else if (theTitle.search(/vacation|vaca|vac|holiday/i) > -1) {
+    eventType = "on vacation";
+  } else if (theTitle.search(/conference|training|seminar|workshop|conf|session|meeting/i) > -1) {
+    eventType = "at a meeting/conference/training";
+  } else {
+    eventType = "out";
+  }
+  return eventType;
 }
 
 // Adds aggregated "all day" event to private calendar used for email digest and notification
-function createGoneEvent(goneListArray, theDate) {
-    if (goneListArray.length === 0) //do not post if nobody is out
-    {
-        return false;
-    }
+function createGoneEvent(gone, today, a) {
+  if (gone.length === 0) //do not post if nobody is out
+  {
+    return false;
+  }
 
-    var goneList = goneListArray.join("\n");
-    theDate.setDate(theDate.getDate());
-    if (goneList.length === 0) {
-        return false;
-    }
+  var goneList = gone.join("\n");
+  today.setDate(today.getDate());
+  if (goneList.length === 0) {
+    return false;
+  }
 
-    var officialCal = CalendarApp.getOwnedCalendarsByName(pCal)[0];
-    var events = officialCal.getEventsForDay(theDate);
+  var cal = CalendarApp.getOwnedCalendarsByName(a.pCal)[0];
+  var events = cal.getEventsForDay(today);
   
-    for (var e in events) {
-        var event = events[e];
-        var startDate = Utilities.formatDate(event.getStartTime(),
-            (event.isAllDayEvent() === true ? "GMT" : timezone), "M/d/yyyy");
-        var theDateshort = Utilities.formatDate(theDate, "GMT", "M/d/yyyy");
+  for (var e in events) {
+    var event = events[e];
+    var startDateEvent = Utilities.formatDate(event.getStartTime(),
+      (event.isAllDayEvent() === true ? "GMT" : a.offset), "M/d/yyyy");
+    var tempDate = new Date(startDateEvent);
+    var theDateshort = Utilities.formatDate(tempDate, "GMT", "M/d/yyyy");
 
-        if (e == 0) {
-          var outToday = (theDateshort == todayShort ? true : false);
-        }
+    if (e === 0) {
+      var outToday = (theDateshort === atodayShort ? true : false);
     }
+  }
 
-    var advancedArgs = { description: goneList };
-    officialCal.createAllDayEvent("Out of office", theDate, advancedArgs);
+  var advancedArgs = { description: goneList };
+  cal.createAllDayEvent("Out of office", today, advancedArgs);
 }
 
-// Use a specific Gcal method to create multi-day events
-function createMultiDayEvent(calendar, title, startDate, endDate) {
- var timeZone = calendar.getTimeZone();
- var description = Utilities.formatString( '%s from %s to %s', title, dateString_( startDate, timeZone ), dateString_( endDate, timeZone ));
- return calendar.createEventFromDescription(description);
+function whoIsOut(today, s, a) {
+  var peopleOut = [];
+  var myCal = CalendarApp.getDefaultCalendar();
+  var events = myCal.getEventsForDay(today);
+
+  for (var e = 0; e < events.length; e++) {
+    var event = events[e];
+    var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
+
+    // Weed out future all-day events mistakenly pulled by broken getEventsForDay function    
+    if ((today >= event.getStartTime()) || duration < 1) {
+      var personEmail = event.getOriginalCalendarId();
+
+      // If membership check is skipped, events from anyone will be included on this calendar.
+      // This is only relevant for org-wide calendars.
+      if (a.skip != true) {
+        var groupMember = false;
+        groupMember = compare(a.targetGroups, personEmail, s);
+      } else {
+        var groupMember = true
+      }
+
+      if (groupMember != false) {
+        var personName = getUserName(personEmail);
+        replicate(event, duration, today, personName, a);
+        var durDisplay = formatTheDate(event, duration, s);
+        
+        // This hardcodes table HTML formatting into the daily event
+        peopleOut.push("<tr><td>" +
+            personName + " is " +
+            getEventType(event.getTitle()) +
+            " " + durDisplay +
+            "</td></tr>");
+      }
+    }
+  }
+  peopleOut.sort();
+  return peopleOut;
 }
 
-// Format the date as a string for the createEventFromDescription method
-function dateString_(date, timeZone) {
- // format like Apr 21 2013
- var format = ' MMM dd yyyy';
- var str = Utilities.formatDate(date, timeZone, format);
- return str;
+// Update the calendar
+function updateCalendars(s, a) {
+  deleteEvents(s, a);
+  for (u = 0; u < s.calUpdate; u++) {
+    var activeDate = new Date(s.startDate);
+    activeDate.setDate(activeDate.getDate() + u);
+    
+    if (activeDate.getDay() !== 0 && activeDate.getDay() != 6) { //not a weekend
+      var goneListArray = whoIsOut(activeDate, s, a);
+      createGoneEvent(goneListArray, activeDate, a);
+    }
+  }
+}
+
+/**
+ * Set up calendar sharing for a single user or group. Refer to 
+ * https://developers.google.com/google-apps/calendar/v3/reference/acl/insert.
+ *
+ * @param {string} calId   Calendar ID
+ * @param {string} user    Email address to share with
+ * @param {string} role    Optional permissions, default = "reader":
+ *                         "none, "freeBusyReader", "reader", "writer", "owner"
+ *
+ * @returns {aclResource}  See https://developers.google.com/google-apps/calendar/v3/reference/acl#resource
+ */
+
+function shareCalendar(calId, user, role) {
+  role = role || "reader";
+
+  var acl = null;
+  
+  // Figure out whether this is a person or a group
+  try {
+    var userObject = AdminDirectory.Users.get(user);
+  }
+  catch (e) {
+    var userType = "group";
+  }
+  
+  if (userObject) {
+    var userType = "user";
+  }
+
+  // Check whether there is already a rule for this user
+  try {
+    var acl = Calendar.Acl.get(calId, userType + ":" + user);
+    var aclRole = acl.role;
+  }
+  catch (e) {
+    // No existing acl record for this user
+  }
+
+  if (!acl || aclRole.match(/^(reader|writer|owner)$/) === null) {
+    // No existing rule - insert one.
+    acl = {
+      "scope": {
+        "type": userType,
+        "value": user
+      },
+      "role": role
+    };
+    var newRule = Calendar.Acl.insert(acl, calId);
+  }
+  else {
+    // There was a rule for this user - do nothing.
+    return;
+  }
+
+  return newRule;
 }

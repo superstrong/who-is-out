@@ -1,13 +1,15 @@
 # Who is Out
 
+Invite out@yourdomain.com to your out-of-office calendar event (sick, vacation, off-site, etc.) to easily, automatically roll it to a shared calendar, email digest, and chat notification.
+
 No more pestering your coworkers repeatedly about an upcoming vacation or forgetting to tell people about a doctor appointment because you "added it to your calendar" and forgot about it.
 
-This set of Google Apps Scripts:
+This Google Apps Script:
 
-- Automatically creates an shared calendar of who and when everyone will be out of office
+- Creates a shared calendar of who and when everyone will be out of office
 - Emails your team a daily digest aggregating out-of-office time for the next few weeks
-- Sends a daily notification to a webhook of your choice with today's scheduled out-of-office time -- e.g., ping a [Zapier](https://zapier.com) webhook, relay it to [Slack](https://slack.com)
-- Does this **for as many distinct groups as you want.** Use one for the whole company, or break things out into functional groups.
+- Sends a daily notification to a webhook (i.e., Slack) of your choice with today's scheduled out-of-office time
+- Does this **for as many distinct groups as you want.** Use one for a small company, or break things out into teams and functional groups.
     - Matches users who are indirect/nested group members of the parent group (e.g., "group" -> "subgroup" -> "user")
 
 ## Usage
@@ -24,8 +26,14 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 - Give the user elevated privileges. Create a new role (e.g., `Calendar Reader`) and give it **Read** access to `users`, `organization units`, and `groups`. Apply this role to the new user.
 
 ### As the new user
-- For each group that wants to use this, create two secondary calendars: one to aggregate events, used only for the email digest and not shared (e.g., "ooo - eng", "ooo - mgmt"), and a friendly looking one that will have a copy of everyone's specific OOO events and can be shared back with the group (e.g., "Out and Away", "Out and Away (Eng)", "Out and Away (Mgmt)", etc.
-- Create a new Google Sheet (name doesn't matter), then open Tools -> Script editor...
+- Copy [this Sheet](https://docs.google.com/spreadsheets/d/17jFYPIpLOCNBJOKdDi1ej9i7ZkUhdYcvEq_eBqFZ6NU/edit?usp=sharing) and save to `My Drive`
+- Share it with yourself (your real email address) with full write access so you can access it easily in the future
+- Recommended: Protect the `Instructions`, `Setup`, and `Flattened Groups` tabs so others don't mistakenly overwrite them
+- Add your email address to `A1` in the `Setup` tab
+- For each group that wants to use this, fill out the rows in the `Groups` tab. You can do it yourself or share with others.
+    - Recommended: For testing purposes, set the `Email Recipients` and `Share Calendar With` values in the `Groups` tab (columns D and E) to your own email address until you are ready to set it loose.
+
+- Open Tools -> Script editor...
 - In your script project, open Resources -> Cloud Platform Project...
 - An overlay will say "This script is currently associated with project:" ... click the link. If there is no link, give the project a name first, then click the resulting link.
 - Search for and enable the following API: **Admin SDK**
@@ -36,37 +44,24 @@ Close out of this to return to your script project.
 - Enable `Admin Directory API` and `Calendar API`
 - Click OK
 
-Now we can create the scripts.
+*Now we can create the script.*
 
-- Create each of these empty scripts (File -> New -> Script file): `events.gs`, `digest.gs`, `trigger.gs`, `groups.gs`, `compare.gs`, and (optionally) `notification.gs`. Copy/paste the contents from here to there, completely overwriting the default myFunction code.
-- In `trigger.gs`, update the `data` configuration and `domainName` variable. Optionally, change the defaults on `daysUpdate` and `emailDuration`.
-    - Note: Set the `list` value to something you can test with, such as your own email address
-    - Note: Set the webhook to something you can test with. If you are not using the webhook, comment out `notificationDaily` from `daily()`
+- Create this empty script (File -> New -> Script file): `ooo.gs`. Copy/paste the contents from that file in this repo to your new script, completely overwriting the default `myFunction` code in your new script.
 
-#### Configuration data format
-    1. Group the user must belong to
-    2. Secondary calendar used to aggregate outage events for this group
-    3. Distribution list for emailing the outage digest
-    4. Prefix for email digest subject line
-    5. (optional) Webhook for notifying today's human outages
-
-- In `digest.gs`, replace the `maintainer` and `timezone` variables with your desired values.
-- In `trigger.gs`, run `hourly()` and `daily()` manually. This will cause them to prompt you for permission, which you should approve.
-- Make sure a `Sheet1` exists in your Sheet, or change the relevant value for `sheetData` in `trigger.gs`.
+#### Run the triggers
+- Run `updateGroups` (Run -> updateGroups). This will aggregate all the subgroups contained by the desired (parent) groups, which will then be used to match users with the parent group even if they are indirect members (members of subgroups). If you are prompted for permission to execute the script, you should approve.
+- Run `update`. This will update all private and shared calendars. Approve any requested permissions.
+- Run `updateAndNotify`. This will update all calendars, send the email digest(s), and trigger the webhook(s) if applicable. Approve any requested permissions.
 
 Once you feel like everything is working, you can set it loose.
 
 ### Set to autopilot
-- Replace the `list` values in `trigger.gs` with your desired distribution addresses.
-- Create an hourly trigger for `hourly()`
-- Create a daily trigger for `daily()`. Even if you trigger it every day, by default the digest will not run on Saturdays, and the chat notification will not run on Saturdays or Sundays.
-- Create a daily trigger for `updateGroups()`. This will aggregate all the subgroups contained by the target groups in the `Sheet1` tab, which will then be used by `compare()` to match users with the target group even if they are indirect members (members of subgroups).
+- Create an hourly trigger for `update`
+- Create a daily trigger for `updateAndNotify`. This is commonly set to first thing on a weekday, such as between 7-8am. Even if you trigger it every day, default values in the `Setup` tab and group-specific overrides in the `Groups` tab will actually control whether the emails and webhooks are sent.
+- Create a daily trigger for `updateGroups`. It makes sense to set this for after close of business but before the daily `updateAndNotify` job runs -- such as 3-4am.
 
 ## TODO
-- Refactor the config so the user-defined variables are by themselves in a script
-- Consider using more of the spreadsheet itself for config values
-- Refactor the code everywhere to be less awful now that I am learning about how JS should be written
-- Refactor the syntax to be consistent (clean up the copy/paste sloppiness)
+- Make multiday partialday events work properly. Currently an event such as 12:30pm Monday to 10:30am Tuesday will show up on both Monday and Tuesday stating that it runs from 12:30pm-10:30am (huh?)
 
 ## Contributing
 
@@ -78,7 +73,7 @@ Once you feel like everything is working, you can set it loose.
 
 ## History
 
-Inspired by a daily digest we had at Cover in NYC (RIP). Upgraded through experience at [frame.ai](https://frame.ai) and discussions with other startup employees.
+Inspired by a daily digest we had at Cover in NYC (RIP). Upgraded through experience at [frame.ai](https://frame.ai) and discussions with other startup employees who use it.
 
 ## Credits
 
