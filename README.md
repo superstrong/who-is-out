@@ -16,7 +16,9 @@ This Google Apps Script:
 
 Just invite the new `out@<yourdomain.com>` user to your event and it will show up on the shared calendar and in the digest. For the digest, the title of the event will be replaced by a generic description based on keywords in the title, such as `working remote`, `sick/doctor`, `event/conference/meeting`, etc. -- whatever you want.
 
-![Screenshot](http://dropshare-superstrong.s3.amazonaws.com/XfBD5oLxNGgcJR/Screen-Shot-2016-12-16-at-9.55.43-PM.png)
+![Email example](http://dropshare-superstrong.s3.amazonaws.com/0PeLfQHoqf8e8z/Screen-Shot-2017-04-12-at-9.44.30-PM.png)
+
+![Webhook example](http://dropshare-superstrong.s3.amazonaws.com/dv4d7WdWZSm8j8/Screen-Shot-2017-04-12-at-9.45.51-PM.png)
 
 ## Installation
 
