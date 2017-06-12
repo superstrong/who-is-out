@@ -14,11 +14,25 @@ This Google Apps Script:
 
 ## Usage
 
-Just invite the new `out@<yourdomain.com>` user to your event and it will show up on the shared calendar and in the digest. For the digest, the title of the event will be replaced by a generic description based on keywords in the title, such as `working remote`, `sick/doctor`, `event/conference/meeting`, etc. -- whatever you want.
+### As a consumer
+
+Just invite the new `out@<yourdomain.com>` user to your event and it will show up on the shared calendar and in the digest. For the digest, the title of the event will be replaced by a generic description based on keywords in the title, such as `working remote`, `sick/doctor`, `event/conference/meeting`, etc. You can customize these keyword matches and generic descriptions in the script.
+
+*Sample email digest:*
 
 ![Email example](http://dropshare-superstrong.s3.amazonaws.com/0PeLfQHoqf8e8z/Screen-Shot-2017-04-12-at-9.44.30-PM.png)
 
+
+*Sample chat notification (via webhook):*
+
 ![Webhook example](http://dropshare-superstrong.s3.amazonaws.com/dv4d7WdWZSm8j8/Screen-Shot-2017-04-12-at-9.45.51-PM.png)
+
+### As a group manager
+
+- Add your group as a new row in the *Groups* tab of the shared *Who Is Out* sheet.
+- Wait until the next scheduled triggers (i.e., overnight).
+    - Alternatively, if you have script access, you can force run `updateGroups` then `update` to activate your group right away.
+- For each new sheet row, the script will automatically share a calendar with the recipients so they can see all the events any time. This shared calendar preserves the original event titles.
 
 ## Installation
 
