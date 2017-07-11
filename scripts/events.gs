@@ -79,7 +79,7 @@ function formatTheDate (event, duration, s) {
     endDate.setDate(endDate.getDate() - 1);
     var durDisplay =
       Utilities.formatDate(event.getStartTime(),
-        (event.isAllDayEvent() === true ? "GMT" : offset), "M/d")
+        (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d")
           + " - " 
           + Utilities.formatDate(endDate, (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d");
   } else if (duration < 1) {
