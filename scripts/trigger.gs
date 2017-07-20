@@ -8,21 +8,25 @@ function update() {
   var groups = init();
   var count = groups.count;
   var backward = 0; // update the calendar starting this many days ago (default: 0)
-  var calUpdate = 7; // update the calendar for this many days, starting from today or the past as determined by `backward`.
+  var calUpdate = 14; // update the calendar for this many days, starting from today or the past as determined by `backward`.
   
   for (var i = 0; i < groups.count; i++) {
-    var static = setStatic(groups, calUpdate, backward);
-    var active = setActive(groups, i);
+    try {
+      var static = setStatic(groups, calUpdate, backward);
+      var active = setActive(groups, i);
     
-    if (active.skip != true) {
-      active.targetGroups = containedGroups(active.group);
-    }
+      if (active.skip != true) {
+        active.targetGroups = containedGroups(active.group);
+      }
     
-    updateCalendars(static, active);
+      updateCalendars(static, active);
     
-    for (var sc = 0; sc < active.share.length; sc++) {
-      var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
-      shareCalendar(calId, active.share[sc], "reader");
+      for (var sc = 0; sc < active.share.length; sc++) {
+        var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
+        shareCalendar(calId, active.share[sc], "reader");
+      }
+    } catch (e) {
+      MailApp.sendEmail(static.maintainer, "Error: Out of office failed on update for " + active.group, e.message);
     }
   }
 }
@@ -30,28 +34,32 @@ function update() {
 function updateAndNotify() {
   var groups = init();
   var backward = 0;
-  var calUpdate = 28;
+  var calUpdate = 21;
   
   for (var i = 0; i < groups.count; i++) {
-    var static = setStatic(groups, calUpdate, backward);
-    var active = setActive(groups, i);
-    
-    active.window = (active.window <= calUpdate) ? active.window : calUpdate;
-    
-    if (active.skip != true) {
-      active.targetGroups = containedGroups(active.group);
-    }
-    
-    updateCalendars(static, active);
-    sendEmail(static, active);
-    
-    if (active.webhook.length > 0) {
-      sendWebhook(static, active);
-    }
-    
-    for (var j = 0; j < active.share.length; j++) {
-      var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
-      shareCalendar(calId, active.share[j], "reader");
+    try {
+      var static = setStatic(groups, calUpdate, backward);
+      var active = setActive(groups, i);
+      
+      active.window = (active.window <= calUpdate) ? active.window : calUpdate;
+      
+      if (active.skip != true) {
+        active.targetGroups = containedGroups(active.group);
+      }
+      
+      updateCalendars(static, active);
+      sendEmail(static, active);
+      
+      if (active.webhook.length > 0) {
+        sendWebhook(static, active);
+      }
+      
+      for (var j = 0; j < active.share.length; j++) {
+        var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
+        shareCalendar(calId, active.share[j], "reader");
+      }
+    } catch (e) {
+      MailApp.sendEmail(static.maintainer, "Error: Out of office failed on updateAndNotify for " + active.group, e.message);
     }
   }
 }
