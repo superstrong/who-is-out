@@ -1,76 +1,3 @@
-// Remove the table tags that were hardcoded into the daily summaries by events.gs
-function reformat(s) {
-  s = s.replace(/<tr>/g, "").replace(/<\/tr>/g, "").trim();
-  s = s.replace(/<td>/g, "").replace(/<\/td>/g, "").trim();
-  return s;
-}
-
-function notify(n, w) {
-  var formData = {
-   'message': n
-  };
-  var options = {
-   'method' : 'post',
-   'payload' : formData
-  };
-  UrlFetchApp.fetch(w, options);
-}
-
-function sendWebhook(s, a) {
-
-  var send = shouldSend(s, a.wDays);
-  if (send != true) {
-    return;
-  } else {
-    var startDateDD = s.startDate.getDate();
-    var startDateMM = s.startDate.getMonth();
-
-    var endDateDD = addDays(s.startDate, 2).getDate();
-    var endDateMM = addDays(s.startDate, 2).getMonth();
-    var endDateYY = addDays(s.startDate, 2).getYear();
-    var endDate = new Date(endDateYY, endDateMM, endDateDD);
-  
-    var cal = CalendarApp.getOwnedCalendarsByName(a.pCal)[0];
-    var weeklyEvents = cal.getEvents(s.startDate, endDate);
-  
-    var eventTitle = [];
-    var eventStartTime = [];
-    var previousStartTime = new Date(1970);
-    var eventEndTime = [];
-    var eventDescription = [];
-    var eventLocation = [];
-    
-    var notification = '';
-  
-    for (var i = 0; i < weeklyEvents.length; ++i) {
-      eventTitle[i] = weeklyEvents[i].getTitle();
-      eventStartTime[i] = weeklyEvents[i].getStartTime();
-      eventEndTime[i] = weeklyEvents[i].getEndTime();
-      eventDescription[i] = weeklyEvents[i].getDescription();
-      eventLocation[i] = weeklyEvents[i].getLocation();
-      
-      // If there are multiple events on same day, dont print the date out more than once
-      if (eventStartTime[i].getMonth() == previousStartTime.getMonth() && eventStartTime[i].getDate() == previousStartTime.getDate() && eventStartTime[i].getYear() == previousStartTime.getYear()) {
-        notification = notification +
-          '\n' + eventDescription[i] + '\n';
-      } else {
-        // Add Slack-flavored Markdown formatting
-        notification = notification +
-          '*' + ((eventStartTime[i].toDateString()).slice(0, 10)) + '*\n' +
-          '' + eventDescription[i] + '\n';
-      }
-      previousStartTime = eventStartTime[i];
-    }
-  
-    if (weeklyEvents.length > 0) {
-      notification = notification + '\nAll dates and times are ' + s.offset + '.';
-      notification = reformat(notification);
-    } else {
-      notification = 'No events today.';
-    }
-    notify(notification, a.webhook);
-  }
-}
 function sendEmail(s, a) {
   
   var myCalId = Session.getActiveUser().getEmail();
@@ -159,13 +86,13 @@ function deleteEvents(s, a) {
   var sEvents = sCalendar.getEvents(from, to);
   
   for (var d = 0; d < pEvents.length; d++) {
-  var ev = pEvents[d];
-  ev.deleteEvent();
+    var ev = pEvents[d];
+    ev.deleteEvent();
   }
   
   for (var d = 0; d < sEvents.length; d++) {
-  var ev = sEvents[d];
-  ev.deleteEvent();
+    var ev = sEvents[d];
+    ev.deleteEvent();
   }
 }
 
@@ -188,27 +115,31 @@ function createMultiDayEvent(cal, title, start, end) {
 function replicate(event, duration, today, name, a) {
   var rEvent = event;
   var cal = CalendarApp.getCalendarsByName(a.sCal)[0];
-  var title = name + ' - ' + event.getTitle();
+  var title = name + ' - ' + rEvent.getTitle();
   var allDay = event.isAllDayEvent();
   if (allDay === true) {
-  // If it's all-day event, check whether it's more than one day
-  if (duration > 1) {
-    // If more than one day, requires a hacky creation method (see createMultiDayEvent)
-    var start = event.getAllDayStartDate();
-    var end = addDays(start, duration);
-    var startGap = new Date(today) - new Date(start);
-    
-    // Don't create another multi-day event if the event started on a previous day
-    if (startGap > 0) {
-    return;
+    // If it's all-day event, check whether it's more than one day
+    if (duration > 1) {
+      // If more than one day, requires a hacky creation method (see createMultiDayEvent)
+      var start = rEvent.getAllDayStartDate();
+      var end = addDays(start, duration);
+      
+      // Don't create another multi-day event if the event started on a previous day
+      if (today > start) {
+        return;
+      } else {
+        createMultiDayEvent(cal, title, start, end);
+      }
     } else {
-    createMultiDayEvent(cal, title, start, end);
+      cal.createAllDayEvent(title, rEvent.getAllDayStartDate());
     }
   } else {
-    cal.createAllDayEvent(title, event.getAllDayStartDate());
-  }
-  } else {
-  cal.createEvent(title, event.getStartTime(), event.getEndTime());
+    var endOfToday = addDays(today, .9999); // 11:59 PM
+    if ((today < rEvent.getStartTime()) && (endOfToday > rEvent.getStartTime())) {
+      cal.createEvent(title, rEvent.getStartTime(), rEvent.getEndTime());
+    } else {
+      return;
+    }
   }
 }
 
@@ -220,9 +151,14 @@ function getUserName(email) {
 }
 
 function formatTheDate (event, duration, s) {
-  if (duration > 1) { //multi-day event - delete one day from end time
+  if (duration > 1) {
     var endDate = event.getEndTime();
-    endDate.setDate(endDate.getDate() - 1);
+    
+    //multi-day all-day event - delete one day from end time
+    if (event.isAllDayEvent() === true) {
+      endDate.setDate(endDate.getDate() - 1);
+    }
+    
     var durDisplay =
       Utilities.formatDate(event.getStartTime(),
         (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d")
@@ -282,7 +218,7 @@ function createGoneEvent(gone, today, a) {
     var theDateshort = Utilities.formatDate(tempDate, "GMT", "M/d/yyyy");
 
     if (e === 0) {
-      var outToday = (theDateshort === atodayShort ? true : false);
+      var outToday = (theDateshort === a.todayShort ? true : false);
     }
   }
 
@@ -300,7 +236,8 @@ function whoIsOut(today, s, a) {
     var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
 
     // Weed out future all-day events mistakenly pulled by broken getEventsForDay function    
-    if ((today >= event.getStartTime()) || duration < 1) {
+    var endOfToday = addDays(today, .9999); // 11:59 PM
+    if ((endOfToday >= event.getStartTime()) || duration < 1) {
       var personEmail = event.getOriginalCalendarId();
 
       // If membership check is skipped, events from anyone will be included on this calendar.
@@ -324,6 +261,7 @@ function whoIsOut(today, s, a) {
             " " + durDisplay +
             "</td></tr>");
       }
+    } else {
     }
   }
   peopleOut.sort();
@@ -399,6 +337,85 @@ function shareCalendar(calId, user, role) {
   }
 
   return newRule;
+}/*
+Functions:
+ update: updates Out of office calendars
+ updateAndNotify: updates Out of office calendars, then sends the email digest and chat notification (if applicable)
+*/
+
+function update() {
+  var groups = init();
+  var count = groups.count;
+  var backward = 0; // update the calendar starting this many days ago (default: 0)
+  var calUpdate = 7; // update the calendar for this many days, starting from today or the past as determined by `backward`.
+  
+  for (var i = 0; i < groups.count; i++) {
+    var static = setStatic(groups, calUpdate, backward);
+    var active = setActive(groups, i);
+    
+    if (active.skip != true) {
+      active.targetGroups = containedGroups(active.group);
+    }
+    
+    updateCalendars(static, active);
+    
+    for (var sc = 0; sc < active.share.length; sc++) {
+      var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
+      shareCalendar(calId, active.share[sc], "reader");
+    }
+  }
+}
+
+function updateAndNotify() {
+  var groups = init();
+  var backward = 0;
+  var calUpdate = 28;
+  
+  for (var i = 0; i < groups.count; i++) {
+    var static = setStatic(groups, calUpdate, backward);
+    var active = setActive(groups, i);
+    
+    active.window = (active.window <= calUpdate) ? active.window : calUpdate;
+    
+    if (active.skip != true) {
+      active.targetGroups = containedGroups(active.group);
+    }
+    
+    updateCalendars(static, active);
+    sendEmail(static, active);
+    
+    if (active.webhook.length > 0) {
+      sendWebhook(static, active);
+    }
+    
+    for (var j = 0; j < active.share.length; j++) {
+      var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
+      shareCalendar(calId, active.share[j], "reader");
+    }
+  }
+}
+
+// Rebuild the list of Groups displayed in the spreadsheet
+function updateGroups() {
+  var groups = init();
+  var static = setStatic(groups);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetData = ss.getSheetByName("Flattened Groups")
+  var header = ['Parent Group', 'Contained Groups'];
+  sheetData.clear();
+  sheetData.appendRow(header).setFrozenRows(1);
+  for (var i = 0; i < groups.count; i++) {
+    var active = setActive(groups, i);
+    rows = generateGroupTree(active.group, static);
+      for (j = 0; j < rows.length; j++) {
+        rows[j] = [active.group, rows[j]];
+      }
+    if (rows.length > 0) {
+      var lastRow = sheetData.getLastRow();
+      var startRow = lastRow + 1;
+      sheetData.getRange(startRow, 1, rows.length, header.length).setValues(rows);
+    }
+  }
 }
 function init() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -454,6 +471,7 @@ function setStatic(g, c, b) {
   startDate.setHours(0);
   startDate.setMinutes(0);
   startDate.setSeconds(0);
+  startDate.setUTCMilliseconds(0);
   startDate.setDate(startDate.getDate() - b);
   
   var a = {};
@@ -633,84 +651,76 @@ function addDays(date, days) {
   var dat = new Date(date);
   dat.setTime(dat.getTime() + (days * 86400000) - 60000);
   return dat;
+}// Remove the table tags that were hardcoded into the daily summaries by events.gs
+function reformat(s) {
+  s = s.replace(/<tr>/g, "").replace(/<\/tr>/g, "").trim();
+  s = s.replace(/<td>/g, "").replace(/<\/td>/g, "").trim();
+  return s;
 }
-/*
-Functions:
- update: updates Out of office calendars
- updateAndNotify: updates Out of office calendars, then sends the email digest and chat notification (if applicable)
-*/
 
-function update() {
-  var groups = init();
-  var count = groups.count;
-  var backward = 0; // update the calendar starting this many days ago (default: 0)
-  var calUpdate = 7; // update the calendar for this many days, starting from today or the past as determined by `backward`.
+function notify(n, w) {
+  var formData = {
+   'message': n
+  };
+  var options = {
+   'method' : 'post',
+   'payload' : formData
+  };
+  UrlFetchApp.fetch(w, options);
+}
+
+function sendWebhook(s, a) {
+
+  var send = shouldSend(s, a.wDays);
+  if (send != true) {
+    return;
+  } else {
+    var startDateDD = s.startDate.getDate();
+    var startDateMM = s.startDate.getMonth();
+
+    var endDateDD = addDays(s.startDate, 2).getDate();
+    var endDateMM = addDays(s.startDate, 2).getMonth();
+    var endDateYY = addDays(s.startDate, 2).getYear();
+    var endDate = new Date(endDateYY, endDateMM, endDateDD);
   
-  for (var i = 0; i < groups.count; i++) {
-    var static = setStatic(groups, calUpdate, backward);
-    var active = setActive(groups, i);
-    
-    if (active.skip != true) {
-      active.targetGroups = containedGroups(active.group);
-    }
-    
-    updateCalendars(static, active);
-    
-    for (var sc = 0; sc < active.share.length; sc++) {
-      var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
-      shareCalendar(calId, active.share[sc], "reader");
-    }
-  }
-}
-
-function updateAndNotify() {
-  var groups = init();
-  var backward = 0;
-  var calUpdate = 28;
+    var cal = CalendarApp.getOwnedCalendarsByName(a.pCal)[0];
+    var weeklyEvents = cal.getEvents(s.startDate, endDate);
   
-  for (var i = 0; i < groups.count; i++) {
-    var static = setStatic(groups, calUpdate, backward);
-    var active = setActive(groups, i);
+    var eventTitle = [];
+    var eventStartTime = [];
+    var previousStartTime = new Date(1970);
+    var eventEndTime = [];
+    var eventDescription = [];
+    var eventLocation = [];
     
-    active.window = (active.window <= calUpdate) ? active.window : calUpdate;
-    
-    if (active.skip != true) {
-      active.targetGroups = containedGroups(active.group);
-    }
-    
-    updateCalendars(static, active);
-    sendEmail(static, active);
-    
-    if (active.webhook.length > 0) {
-      sendWebhook(static, active);
-    }
-    
-    for (var j = 0; j < active.share.length; j++) {
-      var calId = CalendarApp.getCalendarsByName(active.sCal)[0].getId();
-      shareCalendar(calId, active.share[j], "reader");
-    }
-  }
-}
-
-// Rebuild the list of Groups displayed in the spreadsheet
-function updateGroups() {
-  var groups = init();
-  var static = setStatic(groups);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetData = ss.getSheetByName("Flattened Groups")
-  var header = ['Parent Group', 'Contained Groups'];
-  sheetData.clear();
-  sheetData.appendRow(header).setFrozenRows(1);
-  for (var i = 0; i < groups.count; i++) {
-    var active = setActive(groups, i);
-    rows = generateGroupTree(active.group, static);
-      for (j = 0; j < rows.length; j++) {
-        rows[j] = [active.group, rows[j]];
+    var notification = '';
+  
+    for (var i = 0; i < weeklyEvents.length; ++i) {
+      eventTitle[i] = weeklyEvents[i].getTitle();
+      eventStartTime[i] = weeklyEvents[i].getStartTime();
+      eventEndTime[i] = weeklyEvents[i].getEndTime();
+      eventDescription[i] = weeklyEvents[i].getDescription();
+      eventLocation[i] = weeklyEvents[i].getLocation();
+      
+      // If there are multiple events on same day, dont print the date out more than once
+      if (eventStartTime[i].getMonth() == previousStartTime.getMonth() && eventStartTime[i].getDate() == previousStartTime.getDate() && eventStartTime[i].getYear() == previousStartTime.getYear()) {
+        notification = notification +
+          '\n' + eventDescription[i] + '\n';
+      } else {
+        // Add Slack-flavored Markdown formatting
+        notification = notification +
+          '*' + ((eventStartTime[i].toDateString()).slice(0, 10)) + '*\n' +
+          '' + eventDescription[i] + '\n';
       }
-    if (rows.length > 0) {
-      var lastRow = sheetData.getLastRow();
-      var startRow = lastRow + 1;
-      sheetData.getRange(startRow, 1, rows.length, header.length).setValues(rows);
+      previousStartTime = eventStartTime[i];
     }
+  
+    if (weeklyEvents.length > 0) {
+      notification = notification + '\nAll dates and times are ' + s.offset + '.';
+      notification = reformat(notification);
+    } else {
+      notification = 'No events today.';
+    }
+    notify(notification, a.webhook);
   }
 }

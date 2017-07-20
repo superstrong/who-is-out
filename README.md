@@ -76,9 +76,6 @@ Once you feel like everything is working, you can set it loose.
 - Create a daily trigger for `updateAndNotify`. This is commonly set to first thing on a weekday, such as between 7-8am. Even if you trigger it every day, default values in the `Setup` tab and group-specific overrides in the `Groups` tab will actually control whether the emails and webhooks are sent.
 - Create a daily trigger for `updateGroups`. It makes sense to set this for after close of business but before the daily `updateAndNotify` job runs -- such as 3-4am.
 
-## TODO
-- Make multiday partialday events work properly. Currently an event such as 12:30pm Monday to 10:30am Tuesday will show up on both Monday and Tuesday stating that it runs from 12:30pm-10:30am (huh?)
-
 ## Contributing
 
 1. Fork it!

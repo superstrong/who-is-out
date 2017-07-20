@@ -52,6 +52,7 @@ function setStatic(g, c, b) {
   startDate.setHours(0);
   startDate.setMinutes(0);
   startDate.setSeconds(0);
+  startDate.setUTCMilliseconds(0);
   startDate.setDate(startDate.getDate() - b);
   
   var a = {};

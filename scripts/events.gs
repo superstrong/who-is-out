@@ -13,13 +13,13 @@ function deleteEvents(s, a) {
   var sEvents = sCalendar.getEvents(from, to);
   
   for (var d = 0; d < pEvents.length; d++) {
-  var ev = pEvents[d];
-  ev.deleteEvent();
+    var ev = pEvents[d];
+    ev.deleteEvent();
   }
   
   for (var d = 0; d < sEvents.length; d++) {
-  var ev = sEvents[d];
-  ev.deleteEvent();
+    var ev = sEvents[d];
+    ev.deleteEvent();
   }
 }
 
@@ -42,27 +42,31 @@ function createMultiDayEvent(cal, title, start, end) {
 function replicate(event, duration, today, name, a) {
   var rEvent = event;
   var cal = CalendarApp.getCalendarsByName(a.sCal)[0];
-  var title = name + ' - ' + event.getTitle();
+  var title = name + ' - ' + rEvent.getTitle();
   var allDay = event.isAllDayEvent();
   if (allDay === true) {
-  // If it's all-day event, check whether it's more than one day
-  if (duration > 1) {
-    // If more than one day, requires a hacky creation method (see createMultiDayEvent)
-    var start = event.getAllDayStartDate();
-    var end = addDays(start, duration);
-    var startGap = new Date(today) - new Date(start);
-    
-    // Don't create another multi-day event if the event started on a previous day
-    if (startGap > 0) {
-    return;
+    // If it's all-day event, check whether it's more than one day
+    if (duration > 1) {
+      // If more than one day, requires a hacky creation method (see createMultiDayEvent)
+      var start = rEvent.getAllDayStartDate();
+      var end = addDays(start, duration);
+      
+      // Don't create another multi-day event if the event started on a previous day
+      if (today > start) {
+        return;
+      } else {
+        createMultiDayEvent(cal, title, start, end);
+      }
     } else {
-    createMultiDayEvent(cal, title, start, end);
+      cal.createAllDayEvent(title, rEvent.getAllDayStartDate());
     }
   } else {
-    cal.createAllDayEvent(title, event.getAllDayStartDate());
-  }
-  } else {
-  cal.createEvent(title, event.getStartTime(), event.getEndTime());
+    var endOfToday = addDays(today, .9999); // 11:59 PM
+    if ((today < rEvent.getStartTime()) && (endOfToday > rEvent.getStartTime())) {
+      cal.createEvent(title, rEvent.getStartTime(), rEvent.getEndTime());
+    } else {
+      return;
+    }
   }
 }
 
@@ -74,9 +78,14 @@ function getUserName(email) {
 }
 
 function formatTheDate (event, duration, s) {
-  if (duration > 1) { //multi-day event - delete one day from end time
+  if (duration > 1) {
     var endDate = event.getEndTime();
-    endDate.setDate(endDate.getDate() - 1);
+    
+    //multi-day all-day event - delete one day from end time
+    if (event.isAllDayEvent() === true) {
+      endDate.setDate(endDate.getDate() - 1);
+    }
+    
     var durDisplay =
       Utilities.formatDate(event.getStartTime(),
         (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d")
@@ -136,7 +145,7 @@ function createGoneEvent(gone, today, a) {
     var theDateshort = Utilities.formatDate(tempDate, "GMT", "M/d/yyyy");
 
     if (e === 0) {
-      var outToday = (theDateshort === atodayShort ? true : false);
+      var outToday = (theDateshort === a.todayShort ? true : false);
     }
   }
 
@@ -154,7 +163,8 @@ function whoIsOut(today, s, a) {
     var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
 
     // Weed out future all-day events mistakenly pulled by broken getEventsForDay function    
-    if ((today >= event.getStartTime()) || duration < 1) {
+    var endOfToday = addDays(today, .9999); // 11:59 PM
+    if ((endOfToday >= event.getStartTime()) || duration < 1) {
       var personEmail = event.getOriginalCalendarId();
 
       // If membership check is skipped, events from anyone will be included on this calendar.
@@ -178,6 +188,7 @@ function whoIsOut(today, s, a) {
             " " + durDisplay +
             "</td></tr>");
       }
+    } else {
     }
   }
   peopleOut.sort();
