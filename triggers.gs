@@ -9,7 +9,7 @@ function updateCalendars() {
   var groups = init();
   var count = groups.count;
   var backward = 0; // update the calendar starting this many days ago (default: 0)
-  var calUpdate = 14; // update the calendar for this many days, starting from today or the past as determined by `backward`.
+  var calUpdate = 56; // update the calendar for this many days, starting from today or the past as determined by `backward`.
   var static = setStatic(groups, calUpdate, backward);
   
   for (var i = 0; i < groups.count; i++) {

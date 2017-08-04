@@ -1,212 +1,299 @@
-// Deletes existing events from the shared calendars
-function deleteEvents(s, a) {
-  
-  var from = s.startDate;
-  var to = s.endDate;
-  
-  var pCal = a.pCal;
-  var pCalendar = CalendarApp.getCalendarsByName(pCal)[0];
-  var pEvents = pCalendar.getEvents(from, to);
-  
-  var sCal = a.sCal;
-  var sCalendar = CalendarApp.getCalendarsByName(sCal)[0];
-  var sEvents = sCalendar.getEvents(from, to);
-  
-  for (var d = 0; d < pEvents.length; d++) {
-    var ev = pEvents[d];
-    ev.deleteEvent();
-  }
-  
-  for (var d = 0; d < sEvents.length; d++) {
-    var ev = sEvents[d];
-    ev.deleteEvent();
-  }
-}
+/**
+ * Updates all the shared calendars from the source sheet.
+ * Compares the unified OOO calendar to the shared calendar for a specific group,
+ * then uses the diff to delete/create events as needed.
+ *
+ * @param {object} s   Static script properties
+ * @param {object} a  Active script properties (i.e., groups)
+ *
+ */
 
-// Use a specific Gcal method to create multi-day events
-function createMultiDayEvent(cal, title, start, end) {
+function updateSharedCalendars(s, a) {
+
+  // *** HELPER FUNCTIONS *** //
   
-  function dateString_(date, timeZone) {
-   // format like Apr 21 2013
-   var format = ' MMM dd yyyy';
-   var str = Utilities.formatDate(date, timeZone, format);
-   return str;
+  // Use a specific Gcal method to create multi-day events
+  function createMultiDayEvent(cal, title, start, end, s) {
+  
+    function dateString_(date, timeZone) {
+      // format like Apr 21 2013
+      var format = ' MMM dd yyyy';
+      var str = Utilities.formatDate(date, timeZone, format);
+      return str;
+    }
+  
+    var zone = s.timezone;
+    var description = Utilities.formatString('%s from %s to %s', title, dateString_(start, zone), dateString_(end, zone));
+    return cal.createEventFromDescription(description);
   }
   
-  var zone = cal.getTimeZone();
-  var description = Utilities.formatString( '%s from %s to %s', title, dateString_( start, zone ), dateString_( end, zone ));
-  return cal.createEventFromDescription(description);
-}
+  // Turn email address into full name
+  function getUserName(email) {
+    var result = AdminDirectory.Users.get(email, { fields: 'name' });
+    var fullname = result.name.fullName;
+    return fullname;
+  }
 
-// Copy events from the invited user to group shared calendars
-function replicate(event, duration, today, name, a) {
-  var rEvent = event;
-  var cal = CalendarApp.getCalendarsByName(a.sCal)[0];
-  var title = name + ' - ' + rEvent.getTitle();
-  var allDay = event.isAllDayEvent();
-  if (allDay === true) {
-    // If it's all-day event, check whether it's more than one day
-    if (duration > 1) {
-      // If more than one day, requires a hacky creation method (see createMultiDayEvent)
-      var start = rEvent.getAllDayStartDate();
-      var end = addDays(start, duration);
-      
-      // Don't create another multi-day event if the event started on a previous day
-      if (today > start) {
-        return;
-      } else {
-        createMultiDayEvent(cal, title, start, end);
+  function matchEvent(sharedEvents, outEventId) {
+    var eventMatches = false;
+    try {
+      if (sharedEvents.hasOwnProperty(outEventId) === true) {
+        eventMatches = true;
       }
-    } else {
-      cal.createAllDayEvent(title, rEvent.getAllDayStartDate());
-    }
-  } else {
-    var endOfToday = addDays(today, .9999); // 11:59 PM
-    if ((today < rEvent.getStartTime()) && (endOfToday > rEvent.getStartTime())) {
-      cal.createEvent(title, rEvent.getStartTime(), rEvent.getEndTime());
-    } else {
-      return;
-    }
-  }
-}
-
-// Turn email address into full name
-function getUserName(email) {
-  var result = AdminDirectory.Users.get(email, { fields: 'name' });
-  var fullname = result.name.fullName;
-  return fullname;
-}
-
-function formatTheDate (event, duration, s) {
-  if (duration > 1) {
-    var endDate = event.getEndTime();
-    
-    //multi-day all-day event - delete one day from end time
-    if (event.isAllDayEvent() === true) {
-      endDate.setDate(endDate.getDate() - 1);
-    }
-    
-    var durDisplay =
-      Utilities.formatDate(event.getStartTime(),
-        (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d")
-          + " - " 
-          + Utilities.formatDate(endDate, (event.isAllDayEvent() === true ? "GMT" : s.offset), "M/d");
-  } else if (duration < 1) {
-    var durDisplay = 
-      Utilities.formatDate(event.getStartTime(),
-        (event.isAllDayEvent() === true ? "GMT" : s.offset), "h:mm a")
-          + " - " + Utilities.formatDate(event.getEndTime(), (event.isAllDayEvent() === true ? "GMT" : s.offset), "h:mm a");
-  } else //all day
-  {
-    var durDisplay = "all day";
-  }
-  return durDisplay;
-}
-
-// keywords to decide whether to list person as sick, vacaction, conference, or just out (default)
-function getEventType(theTitle) {
-  eventType = "";
-
-  if (theTitle.search(/wfh|wfr/i) > -1) {
-    eventType = "working remote";
-  } else if (theTitle.search(/sick|doctor|dr\.|dentist|medical/i) > -1) {
-    eventType = "sick / has doctor appointment";
-  } else if (theTitle.search(/vacation|vaca|vac|holiday/i) > -1) {
-    eventType = "on vacation";
-  } else if (theTitle.search(/conference|training|seminar|workshop|conf|session|meeting/i) > -1) {
-    eventType = "at a meeting/conference/training";
-  } else {
-    eventType = "out";
-  }
-  return eventType;
-}
-
-// Adds aggregated "all day" event to private calendar used for email digest and notification
-function createGoneEvent(gone, today, a) {
-  if (gone.length === 0) //do not post if nobody is out
-  {
-    return false;
+    } catch (e) {}
+    return eventMatches;
   }
 
-  var goneList = gone.join("\n");
-  today.setDate(today.getDate());
-  if (goneList.length === 0) {
-    return false;
+  function matchHash(sharedEvents, outEventId, outEventHash) {
+    var match = {};
+    match.answer = false;
+    try {
+      match.originalEventId = sharedEvents[outEventId]["originalEventId"];
+      if (sharedEvents[outEventId]["hash"] === outEventHash) {
+        match.answer = true;
+      }
+    } catch (e) {}
+    return match;
   }
 
-  var cal = CalendarApp.getOwnedCalendarsByName(a.pCal)[0];
-  var events = cal.getEventsForDay(today);
-  
-  for (var e in events) {
-    var event = events[e];
-    var startDateEvent = Utilities.formatDate(event.getStartTime(),
-      (event.isAllDayEvent() === true ? "GMT" : a.offset), "M/d/yyyy");
-    var tempDate = new Date(startDateEvent);
-    var theDateshort = Utilities.formatDate(tempDate, "GMT", "M/d/yyyy");
-
-    if (e === 0) {
-      var outToday = (theDateshort === a.todayShort ? true : false);
-    }
-  }
-
-  var advancedArgs = { description: goneList };
-  cal.createAllDayEvent("Out of office", today, advancedArgs);
-}
-
-function whoIsOut(today, s, a) {
-  var peopleOut = [];
-  var myCal = CalendarApp.getDefaultCalendar();
-  var events = myCal.getEventsForDay(today);
-
-  for (var e = 0; e < events.length; e++) {
-    var event = events[e];
-    var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
-
-    // Weed out future all-day events mistakenly pulled by broken getEventsForDay function    
-    var endOfToday = addDays(today, .9999); // 11:59 PM
-    if ((endOfToday >= event.getStartTime()) || duration < 1) {
-      var personEmail = event.getOriginalCalendarId();
-
-      // If membership check is skipped, events from anyone will be included on this calendar.
-      // This is only relevant for org-wide calendars.
+  function checkMembership(event, email) {
+    // If membership check is skipped, events from anyone will be included on this calendar.
+    // This is only relevant for org-wide calendars.
+    try {
+      var personEmail = email;
       if (a.skip != true) {
         var groupMember = false;
         groupMember = compare(a.targetGroups, personEmail, s);
       } else {
-        var groupMember = true
+        var groupMember = true;
       }
 
       if (groupMember != false) {
         var personName = getUserName(personEmail);
-        replicate(event, duration, today, personName, a);
-        var durDisplay = formatTheDate(event, duration, s);
-        
-        // This hardcodes table HTML formatting into the daily event
-        peopleOut.push("<tr><td>" +
-            personName + " is " +
-            getEventType(event.getTitle()) +
-            " " + durDisplay +
-            "</td></tr>");
+      }
+      return personName;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function deleteSharedEvents(toDelete, a) {
+    try {
+      if (!toDelete) {
+        return;
+      }
+      var sCal = CalendarApp.getCalendarsByName(a.sCal)[0];
+      if (toDelete.length > 0) {
+        for (var td = 0; td < toDelete.length; td++) {
+          var dEventId = toDelete[td];
+          var dEvent = sCal.getEventSeriesById(dEventId);
+          if (dEvent) {
+            try {
+              dEvent.deleteEventSeries();
+            } catch (e) {
+              dEvent.deleteEvent();
+            }
+          }
+        }
+      } else {
+        return;
+      }
+    } catch (e) {
+      return;
+    }
+  }
+
+  function findOrphans(outEvents, sArr) {
+    var eventsToDelete = [];
+    if (!outEvents) {
+      return;
+    } else {
+      if (sArr.length > 0) {
+        for (var fo = 0; fo < sArr.length; fo++) {
+          var sharedEvent = sArr[fo];
+          var sharedEventId = sharedEvent.getId();
+          if (sharedEvent.getTag("id")) {
+            var sharedEventTagId = sharedEvent.getTag("id");
+            if (outEvents.hasOwnProperty(sharedEventTagId) !== true) {
+              eventsToDelete.push(sharedEventId);
+            }
+          } else {
+            eventsToDelete.push(sharedEventId);
+          }
+        }
+      }
+    }
+    return eventsToDelete;
+  }
+
+  function cleanEvent(clone, original) {
+    clone.setTag("id", original.getId());
+    clone.setTag("hash", original.getLastUpdated().toUTCString());
+    clone.removeAllReminders();
+    return clone;
+  }
+
+  function createSharedEvents(toCreate, s, a) {
+    if (toCreate.length > 0) {
+      for (var tc = 0; tc < toCreate.length; tc += 2) {
+        var event = toCreate[tc];
+        var duration = (event.getEndTime() - event.getStartTime()) / 86400000;
+        var name = toCreate[tc + 1];
+        var cal = CalendarApp.getCalendarsByName(a.sCal)[0];
+        var title = name + ' - ' + event.getTitle();
+        var allDay = event.isAllDayEvent();
+
+        // It's an "all-day" event, no times provided
+        if (allDay === true) {
+
+          // Check whether it's more than one day
+          if (duration > 1) {
+            // If more than one day, requires a hacky creation method (see createMultiDayEvent)
+            var start = event.getAllDayStartDate();
+            var end = addDays(start, (duration - .0001));
+            var clone = createMultiDayEvent(cal, title, start, end, s);
+            clone = cleanEvent(clone, event);
+
+          } else {
+            var clone = cal.createAllDayEvent(title, event.getAllDayStartDate());
+            clone = cleanEvent(clone, event)
+          }
+
+        } else {
+          var clone = cal.createEvent(title, event.getStartTime(), event.getEndTime());
+          clone = cleanEvent(clone, event);
+        }
       }
     } else {
+      return;
     }
   }
-  peopleOut.sort();
-  return peopleOut;
+
+  function buildSharedEvents(sArr) {
+    if (sArr.length > 0) {
+      var builtEvents = {};
+      for (var bs = 0; bs < sArr.length; bs++) {
+        var sharedEvent = sArr[bs];
+        var sharedEventId = sharedEvent.getId();
+        if (sharedEvent.getTag("id")) {
+          var sharedEventTagId = sharedEvent.getTag("id");
+          builtEvents[sharedEventTagId] = {};
+          builtEvents[sharedEventTagId]["originalEventId"] = sharedEventId;
+          builtEvents[sharedEventTagId]["event"] = sharedEvent;
+
+          if (sharedEvent.getTag("hash")) {
+            builtEvents[sharedEventTagId]["hash"] = sharedEvent.getTag("hash");
+          }
+        }
+      }
+      return builtEvents;
+    } else {
+      var builtEvents = {};
+    }
+  }
+
+  // *** INSTRUCTIONS *** //
+
+  var sCal = CalendarApp.getCalendarsByName(a.sCal)[0]; // the shared calendar for the current group
+  var sArr = [];
+  sArr = sCal.getEvents(s.startDate, s.endDate);
+  var sharedEvents = {};
+  sharedEvents = buildSharedEvents(sArr);
+
+  var oCal = CalendarApp.getDefaultCalendar(); // the primary calendar for this user
+  var outArr = [];
+  outArr = oCal.getEvents(s.startDate, s.endDate);
+  var outEvents = {};
+
+  // compare calendars, build arrays of diffs
+  var toDelete = [];
+  var toCreate = [];
+  for (var oa = 0; oa < outArr.length; oa++) {
+    var outEvent = outArr[oa];
+    var outEventId = outEvent.getId();
+    var outEventHash = outEvent.getLastUpdated().toUTCString();
+
+    outEvents[outEventId] = {};
+    outEvents[outEventId]["hash"] = outEventHash;
+    outEvents[outEventId]["event"] = outEvent;
+
+    if (matchEvent(sharedEvents, outEventId) === true) {
+      var matched = matchHash(sharedEvents, outEventId, outEventHash);
+      if (matched.answer === true) {
+      } else {
+        toDelete.push(matched.originalEventId);
+
+        var personEmail = outEvent.getOriginalCalendarId();
+        var creatorName = getUserName(personEmail);
+        var eventToCreate = [];
+        var eventToCreate = [outEvent, creatorName];
+        toCreate.push.apply(toCreate, eventToCreate);
+      }
+    } else {
+      var personEmail = outEvent.getOriginalCalendarId();
+      var creatorName = checkMembership(outEvent, personEmail);
+      if (creatorName) {
+        var eventToCreate = [];
+        eventToCreate.push(outEvent, creatorName);
+        toCreate.push.apply(toCreate, eventToCreate);
+      }
+    }
+  }
+
+  deleteSharedEvents(toDelete, a); // delete events from the shared calendar
+  var orphansToDelete = [];
+  orphansToDelete = findOrphans(outEvents, sArr); // find shared calendar events that are no longer on the ooo calendar
+  deleteSharedEvents(orphansToDelete, a); // delete events from the shared calendar
+  createSharedEvents(toCreate, s, a); // create events on the shared calendar
 }
 
-// Update the calendar
-function updateCalendars(s, a) {
-  deleteEvents(s, a);
-  for (u = 0; u < s.calUpdate; u++) {
-    var activeDate = new Date(s.startDate);
-    activeDate.setDate(activeDate.getDate() + u);
-    
-    if (activeDate.getDay() !== 0 && activeDate.getDay() != 6) { //not a weekend
-      var goneListArray = whoIsOut(activeDate, s, a);
-      createGoneEvent(goneListArray, activeDate, a);
+/**
+ * Checks whether the event creator is a member of a specific group.
+ * Relies on an array of groups that might be contained by the specific group -- generated separately.
+ *
+ * @param {array} parents   All groups to check against for membership
+ * @param {string} user  Event creator email address to check
+ * @param {object} s  Static script properties
+ *
+ * @returns {boolean}  True if the user belongs to the specific group or any groups it contains
+ */
+
+function compare(parents, user, s) {
+  
+  function getUserGroups(user, s) {
+    try {
+      var userKey = user;
+      var rows = [];
+      var pageToken, page;
+      do {
+        page = AdminDirectory.Groups.list(
+        {
+          domainName: s.domainName,
+          pageToken: pageToken,
+          userKey: userKey
+        });
+        var groups = page.groups;
+        if (groups)
+        {
+          for (var ad = 0; ad < groups.length; ad++)
+          {
+            var group = groups[ad];
+            var row = [group.email];
+            rows.push(row);
+          }
+        }
+        pageToken = page.nextPageToken;
+      } while (pageToken);
+      return rows;
+    } catch (e) {
+      Logger.log(e);
     }
   }
+  
+  var userGroups = [];
+  userGroups = getUserGroups(user, s);
+  var match = compareArrays(parents, userGroups);
+  return match;
 }
 
 /**
@@ -214,9 +301,9 @@ function updateCalendars(s, a) {
  * https://developers.google.com/google-apps/calendar/v3/reference/acl/insert.
  *
  * @param {string} calId   Calendar ID
- * @param {string} user    Email address to share with
- * @param {string} role    Optional permissions, default = "reader":
- *                         "none, "freeBusyReader", "reader", "writer", "owner"
+ * @param {string} user  Email address to share with
+ * @param {string} role  Optional permissions, default = "reader":
+ *             "none, "freeBusyReader", "reader", "writer", "owner"
  *
  * @returns {aclResource}  See https://developers.google.com/google-apps/calendar/v3/reference/acl#resource
  */
@@ -225,15 +312,14 @@ function shareCalendar(calId, user, role) {
   role = role || "reader";
 
   var acl = null;
-  
+
   // Figure out whether this is a person or a group
   try {
     var userObject = AdminDirectory.Users.get(user);
-  }
-  catch (e) {
+  } catch (e) {
     var userType = "group";
   }
-  
+
   if (userObject) {
     var userType = "user";
   }
@@ -242,8 +328,7 @@ function shareCalendar(calId, user, role) {
   try {
     var acl = Calendar.Acl.get(calId, userType + ":" + user);
     var aclRole = acl.role;
-  }
-  catch (e) {
+  } catch (e) {
     // No existing acl record for this user
   }
 
@@ -257,8 +342,7 @@ function shareCalendar(calId, user, role) {
       "role": role
     };
     var newRule = Calendar.Acl.insert(acl, calId);
-  }
-  else {
+  } else {
     // There was a rule for this user - do nothing.
     return;
   }
