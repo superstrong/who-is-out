@@ -7,16 +7,16 @@ No more pestering your coworkers repeatedly about an upcoming vacation or forget
 This Google Apps Script:
 
 - Creates a shared calendar of who and when everyone will be out of office
-- Emails your team a daily digest aggregating out-of-office time for the next few weeks
-- Sends a daily notification to a webhook (i.e., Slack) of your choice with today's scheduled out-of-office time
-- Does this **for as many distinct groups as you want.** Use one for a small company, or break things out into teams and functional groups.
+- Emails your team a digest aggregating out-of-office time for your desired duration
+- Sends a webhook event with today and tomorrow's out-of-office time -- handy for routing to Slack or Zapier
+- Does this **for as many distinct groups as you want.** Use one group ("everyone@company.com") for a small company, or break things out into teams and functional groups.
     - Matches users who are indirect/nested group members of the parent group (e.g., "group" -> "subgroup" -> "user")
 
 ## Usage
 
 ### As a consumer
 
-Just invite the new `out@<yourdomain.com>` user to your event and it will show up on the shared calendar and in the digest. For the digest, the title of the event will be replaced by a generic description based on keywords in the title, such as `working remote`, `sick/doctor`, `event/conference/meeting`, etc. You can customize these keyword matches and generic descriptions in the script.
+Just invite the new `out@<yourdomain.com>` user to your event and it will show up on the shared calendar and in the digest.
 
 *Sample email digest:*
 
@@ -30,9 +30,9 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 ### As a group manager
 
 - Add your group as a new row in the *Groups* tab of the shared *Who Is Out* sheet.
-- Wait until the next scheduled triggers (i.e., overnight).
-    - Alternatively, if you have script access, you can force run `updateGroups` then `update` to activate your group right away.
-- For each new sheet row, the script will automatically share a calendar with the recipients so they can see all the events any time. This shared calendar preserves the original event titles.
+- Wait until the next scheduled `updateGroups` trigger (i.e., overnight).
+    - If you have script access, you can run `updateGroups` then `updateCalendars` manually to activate your group right away.
+- (optional) For each new sheet row, the script will automatically share a calendar with the recipients so they can see all the events any time. This shared calendar preserves the original event titles.
 
 ## Installation
 
@@ -62,19 +62,19 @@ Close out of this to return to your script project.
 
 *Now we can create the script.*
 
-- Create this empty script (File -> New -> Script file): `ooo.gs`. Copy/paste the contents from that file in this repo to your new script, completely overwriting the default `myFunction` code in your new script.
+- Create this empty script (File -> New -> Script file): `trigger.gs`. Copy/paste the contents from that file in this repo to your new script, completely overwriting the default `myFunction` code in your new script. Repeat this for the rest of the `.gs` script files.
 
 #### Run the triggers
 - Run `updateGroups` (Run -> updateGroups). This will aggregate all the subgroups contained by the desired (parent) groups, which will then be used to match users with the parent group even if they are indirect members (members of subgroups). If you are prompted for permission to execute the script, you should approve.
-- Run `update`. This will update all private and shared calendars. Approve any requested permissions.
-- Run `updateAndNotify`. This will update all calendars, send the email digest(s), and trigger the webhook(s) if applicable. Approve any requested permissions.
+- Run `updateCalendars`. This will update and share all shared calendars. It will also create them if they don't yet exist. Approve any requested permissions.
+- Run `notify`. This will send the email digest(s) and trigger the webhook(s) if applicable. Approve any requested permissions.
 
 Once you feel like everything is working, you can set it loose.
 
 ### Set to autopilot
-- Create an hourly trigger for `update`
-- Create a daily trigger for `updateAndNotify`. This is commonly set to first thing on a weekday, such as between 7-8am. Even if you trigger it every day, default values in the `Setup` tab and group-specific overrides in the `Groups` tab will actually control whether the emails and webhooks are sent.
-- Create a daily trigger for `updateGroups`. It makes sense to set this for after close of business but before the daily `updateAndNotify` job runs -- such as 3-4am.
+- Create an hourly trigger for `updateCalendars`
+- Create a daily trigger for `notify`. This is commonly set to first thing on a weekday, such as between 7-8am. Even if you trigger it every day, default values in the `Setup` tab and group-specific overrides in the `Groups` tab will actually control whether the emails and webhooks are sent.
+- Create a daily trigger for `updateGroups`. It makes sense to set this for after close of business but before the daily `updateAndNotify` job runs, such as 3-4am.
 
 ## Contributing
 
@@ -83,9 +83,6 @@ Once you feel like everything is working, you can set it loose.
 3. Commit your changes: `git commit -am 'Add some feature'`
 4. Push to the branch: `git push origin my-new-feature`
 5. Submit a pull request :)
-
-Currently, `ooo.gs` is a concatenation of separate scripts generated by executing the following terminal command locally from the root of project folder:
-- `cat scripts/*.gs >> tmp; mv tmp ooo.gs`
 
 ## History
 
