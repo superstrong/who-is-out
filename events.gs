@@ -56,19 +56,40 @@ function updateSharedCalendars(s, a) {
     return match;
   }
 
-  function checkMembership(event, email) {
+  function checkMembership(event, email, s, a) {
+    
+    function findMembership(targetGroups, email) {
+      var found, f;
+      var targetMap = {};
+      targetMap = PropertiesService.getScriptProperties();
+
+      found = false;
+    
+      // Loop over all items in the `toMatch` array and see if any of
+      //  their values are in the map from before
+      for (f = 0; !found && (f < targetGroups.length); f++) {
+        var targetGroup = targetGroups[f];
+        var joined = email + "__" + targetGroup;
+        found = !!targetMap.getProperty(joined);
+        // If found, `targetMap[joined]` will return true, otherwise it
+        //  will return `undefined`...that's what the `!!` is for
+      }
+      return found;
+    };
+        
+    
     // If membership check is skipped, events from anyone will be included on this calendar.
     // This is only relevant for org-wide calendars.
     try {
       var personEmail = email;
-      if (a.skip != true) {
-        var groupMember = false;
-        groupMember = compare(a.targetGroups, personEmail, s);
-      } else {
+      if (a.skip === true) {
         var groupMember = true;
+      } else {
+        var groupMember = false;
+        groupMember = findMembership(a.targetGroups, personEmail);
       }
 
-      if (groupMember != false) {
+      if (groupMember === true) {
         var personName = getUserName(personEmail);
       }
       return personName;
@@ -231,7 +252,7 @@ function updateSharedCalendars(s, a) {
       }
     } else {
       var personEmail = outEvent.getOriginalCalendarId();
-      var creatorName = checkMembership(outEvent, personEmail);
+      var creatorName = checkMembership(outEvent, personEmail, s, a);
       if (creatorName) {
         var eventToCreate = [];
         eventToCreate.push(outEvent, creatorName);
@@ -245,55 +266,6 @@ function updateSharedCalendars(s, a) {
   orphansToDelete = findOrphans(outEvents, sArr); // find shared calendar events that are no longer on the ooo calendar
   deleteSharedEvents(orphansToDelete, a); // delete events from the shared calendar
   createSharedEvents(toCreate, s, a); // create events on the shared calendar
-}
-
-/**
- * Checks whether the event creator is a member of a specific group.
- * Relies on an array of groups that might be contained by the specific group -- generated separately.
- *
- * @param {array} parents   All groups to check against for membership
- * @param {string} user  Event creator email address to check
- * @param {object} s  Static script properties
- *
- * @returns {boolean}  True if the user belongs to the specific group or any groups it contains
- */
-
-function compare(parents, user, s) {
-  
-  function getUserGroups(user, s) {
-    try {
-      var userKey = user;
-      var rows = [];
-      var pageToken, page;
-      do {
-        page = AdminDirectory.Groups.list(
-        {
-          domainName: s.domainName,
-          pageToken: pageToken,
-          userKey: userKey
-        });
-        var groups = page.groups;
-        if (groups)
-        {
-          for (var ad = 0; ad < groups.length; ad++)
-          {
-            var group = groups[ad];
-            var row = [group.email];
-            rows.push(row);
-          }
-        }
-        pageToken = page.nextPageToken;
-      } while (pageToken);
-      return rows;
-    } catch (e) {
-      Logger.log(e);
-    }
-  }
-  
-  var userGroups = [];
-  userGroups = getUserGroups(user, s);
-  var match = compareArrays(parents, userGroups);
-  return match;
 }
 
 /**

@@ -107,7 +107,7 @@ function setActive(g, i) {
 
   function createIfNeeded(c) {
     var cal = CalendarApp.getCalendarsByName(c)[0];
-    cal = (cal === undefined) ? CalendarApp.createCalendar(c) : cal;
+    cal = (cal === undefined) ? CalendarApp.createCalendar(c, {timeZone: g.timezone}) : cal;
     return c;
   }
   
@@ -129,6 +129,22 @@ function setActive(g, i) {
   a.wDays = (g.data[i].wDays === "") ? g.wDaysDefault : g.data[i].wDays;
   a.skip = g.data[i].skip;
   return a;
+}
+
+function containedGroups(group) {
+  var parent = group;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetData = ss.getSheetByName("Flattened Groups")
+  var lastRow = sheetData.getLastRow();
+  var fullRange = "A2:B" + lastRow;
+  var groupPairs = sheetData.getRange(fullRange).getValues();
+  var matchedGroups = [];
+  for (var i = 0; i < groupPairs.length; i++) {
+    if (groupPairs[i][0] === parent) {
+      matchedGroups.push(groupPairs[i][1]);
+    }
+  }
+  return matchedGroups;
 }
 
 /**
@@ -177,4 +193,4 @@ function compareArrays(target, toMatch) {
     //  will return `undefined`...that's what the `!!` is for
   }
   return found;
-};
+}
