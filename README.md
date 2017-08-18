@@ -20,12 +20,12 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 
 *Sample email digest:*
 
-![Email example](http://dropshare-superstrong.s3.amazonaws.com/0PeLfQHoqf8e8z/Screen-Shot-2017-04-12-at-9.44.30-PM.png)
+![Email example](https://s3.amazonaws.com/dropshare-superstrong/2017-08-18-at-11.19-AM-aT6fpqBDeC.png)
 
 
-*Sample chat notification (via webhook):*
+*Sample Slack notification (via webhook):*
 
-![Webhook example](http://dropshare-superstrong.s3.amazonaws.com/dv4d7WdWZSm8j8/Screen-Shot-2017-04-12-at-9.45.51-PM.png)
+![Webhook example](https://s3.amazonaws.com/dropshare-superstrong/2017-08-18-at-11.30-AM-fOhMBjiw1n.png)
 
 ### As a group manager
 
