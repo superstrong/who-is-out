@@ -48,6 +48,7 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 - Add your email address to `A1` in the `Setup` tab
 - For each group that wants to use this, fill out the rows in the `Groups` tab. You can do it yourself or share with others.
     - Recommended: For testing purposes, set the `Email Recipients` and `Share Calendar With` values in the `Groups` tab (columns D and E) to your own email address until you are ready to set it loose.
+    - Note: the group membership must be visible to the `out@<yourdomain>` user.
 
 - Open Tools -> Script editor...
 - In your script project, open Resources -> Cloud Platform Project...
