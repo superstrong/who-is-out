@@ -39,9 +39,9 @@ Just invite the new `out@<yourdomain.com>` user to your event and it will show u
 ### As a G Suite admin
 - Go to the [developer console](https://console.developers.google.com) and enable the following APIs: **Admin SDK**, **Google Calendar API**
 - Log in to the [admin console](https://admin.google.com) and create a new user, such as `out@<yourdomain>`
-- Give the user elevated privileges. Create a new role (e.g., `Calendar Reader`) and give it **Read** access to `users`, `organization units`, and `groups`. Apply this role to the new user.
+- Give the user elevated privileges. Create a new role (e.g., `Calendar Reader`) and give it **Read** access to `users`, `organization units`, and `groups`. Apply this role to the new `out@` user.
 
-### As the new user
+### As the new `out@` user
 - Copy [this Sheet](https://docs.google.com/spreadsheets/d/17jFYPIpLOCNBJOKdDi1ej9i7ZkUhdYcvEq_eBqFZ6NU/edit?usp=sharing) and save to `My Drive`
 - Share it with yourself (your real email address) with full write access so you can access it easily in the future
 - Recommended: Protect the `Instructions`, `Setup`, and `Flattened Groups` tabs so others don't mistakenly overwrite them
@@ -91,7 +91,7 @@ Inspired by a daily digest we had at Cover in NYC (RIP). Upgraded through experi
 
 ## Credits
 
-The foundation for this project was two old scripts cobbled together:
+The inspiration for this project was two old scripts cobbled together:
 
 - events.gs is based on [Google Apps Script Vacation Calendar](https://github.com/sobodda/Google-Apps-Script-Vacation-Calendar) by Stephanie Obodda
 - digest.gs is based on [Daily Digest](https://ctrlq.org/code/19961-google-calendar-agenda-email) by [Amit Agarwal](https://github.com/labnol)
