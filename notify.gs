@@ -144,12 +144,13 @@ function sendEmails(s, a) {
 function sendWebhooks(s, a) {
   
   function postEvent(n, w) {
-    var formData = {
-     'message': n
+    var webhookData = {
+     'text': n
     };
     var options = {
      'method' : 'post',
-     'payload' : formData
+      'contentType': 'application/json',
+     'payload' : JSON.stringify(webhookData)
     };
     UrlFetchApp.fetch(w, options);
   }
