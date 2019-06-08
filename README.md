@@ -1,6 +1,6 @@
 # Who is Out
 
-Invite out@yourdomain.com to your out-of-office calendar event (sick, vacation, off-site, etc.) to easily, automatically roll it to a shared calendar, email digest, and chat notification.
+Picture this: you're blocking off some time for a vacation. Simply invite out@yourdomain.com (a special user!) to your out-of-office calendar event to easily, automatically roll it to a shared calendar, email digest, and chat notification.
 
 No more pestering your coworkers repeatedly about an upcoming vacation or forgetting to tell people about a doctor appointment because you "added it to your calendar" and forgot about it.
 
@@ -16,7 +16,7 @@ This Google Apps Script:
 
 ### As a consumer
 
-Just invite the new `out@<yourdomain.com>` user to your event and it will show up on the shared calendar and in the digest.
+Just invite the new `out@<yourdomain.com>` user to your vacation/offsite/sick day/etc. and it will show up on the shared calendar and in the digest.
 
 *Sample email digest:*
 
