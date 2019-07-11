@@ -6,8 +6,8 @@ No more pestering your coworkers repeatedly about an upcoming vacation or forget
 
 This Google Apps Script:
 
-- Creates a shared calendar of who and when everyone will be out of office
-- Emails your team a digest aggregating out-of-office time for your desired duration
+- Creates a shared calendar of who and when everyone you care about will be out of office
+- Emails your chosen team a digest aggregating out-of-office time for your desired duration
 - Sends a webhook event with today and tomorrow's out-of-office time -- handy for routing to Slack or Zapier
 - Does this **for as many distinct groups as you want.** Use one group ("everyone@company.com") for a small company, or break things out into teams and functional groups.
     - Matches users who are indirect/nested group members of the parent group (e.g., "group" -> "subgroup" -> "user")
