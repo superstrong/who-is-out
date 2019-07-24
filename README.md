@@ -1,16 +1,18 @@
 # Who is Out
 
-Picture this: you're blocking off some time for a vacation. Simply invite out@yourdomain.com (a special user!) to your out-of-office calendar event to easily, automatically roll it to a shared calendar, email digest, and chat notification.
+Picture this: you're blocking off some time for a vacation. Just invite this special user (e.g., out@yourdomain.com) to your out-of-office calendar event and it will be automatically rolled into a shared calendar, email digest, and chat notification for your coworkers to see.
 
-No more pestering your coworkers repeatedly about an upcoming vacation or forgetting to tell people about a doctor appointment because you "added it to your calendar" and forgot about it.
+No more pestering your coworkers repeatedly about an upcoming vacation or forgetting to tell people about a doctor appointment because you quietly "added it to your calendar" and forgot about it.
 
-This Google Apps Script:
+This Google Apps Script can:
 
-- Creates a shared calendar of who and when everyone you care about will be out of office
-- Emails your chosen team a digest aggregating out-of-office time for your desired duration
-- Sends a webhook event with today and tomorrow's out-of-office time -- handy for routing to Slack or Zapier
-- Does this **for as many distinct groups as you want.** Use one group ("everyone@company.com") for a small company, or break things out into teams and functional groups.
+- Create a shared calendar of who and when everyone you care about will be out of office
+- Periodically emails your chosen team a digest aggregating upcoming out-of-office time
+- Periodically send a webhook event with today and tomorrow's out-of-office time -- handy for routing to Slack or Zapier
+- Do this **for as many distinct groups as you want.** Use one group ("everyone@company.com") for a small company, or break things out into teams and functional groups.
     - Matches users who are indirect/nested group members of the parent group (e.g., "group" -> "subgroup" -> "user")
+    
+For every group you want to aggregate, the variables can be configured on a single row in the Sheet. How often to email and webhook, how much upcoming time it should cover, who should be notified, etc.
 
 ## Usage
 
