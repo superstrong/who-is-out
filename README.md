@@ -45,12 +45,13 @@ Just invite the new `out@<yourdomain.com>` user to your vacation/offsite/sick da
 
 ### As the new `out@` user
 - Copy [this Sheet](https://docs.google.com/spreadsheets/d/17jFYPIpLOCNBJOKdDi1ej9i7ZkUhdYcvEq_eBqFZ6NU/edit?usp=sharing) and save to `My Drive`
-- Share it with yourself (your real email address) with full write access so you can access it easily in the future. (Note: if you edit the sheet at your personal account, be careful not to edit or run the *scripts* unless you're using the special out@ user.)
+- Share it with yourself (your real email address) with full write access so you can access it easily in the future.
+    - Note: if you edit the sheet at your personal account, be careful not to edit or run the *scripts* unless you're using the special out@ user.
 - Recommended: Protect the `Instructions`, `Setup`, and `Flattened Groups` tabs so others don't mistakenly overwrite them
-- Add your email address to `A1` in the `Setup` tab
+- Add your own real email address to `A2` in the `Setup` tab -- this will list you as the maintainer
 - For each group that wants to use this, fill out the rows in the `Groups` tab. You can do it yourself or share with others.
-    - Recommended: For testing purposes, set the `Email Recipients` and `Share Calendar With` values in the `Groups` tab (columns D and E) to your own email address until you are ready to set it loose.
-    - Note: the group membership must be visible to the `out@<yourdomain>` user.
+    - Recommended: For testing purposes, set the `Email Recipients` and `Share Calendar With` values in the `Groups` tab (columns D and E) to your own email address until you are ready to set it loose and change to the real values.
+    - Note: the group membership must be visible to the `out@<yourdomain>` user. If you run into a situation where the group restricts membership visibility, you'll need to contact an admin of that group and ask them to change it.
 
 - Open Tools -> Script editor...
 - In your script project, open Resources -> Cloud Platform Project...
@@ -63,7 +64,7 @@ Close out of this to return to your script project.
 - Enable `Admin Directory API` and `Calendar API`
 - Click OK
 
-*Now we can create the script.*
+*Now we can create the scripts.*
 
 - Create this empty script (File -> New -> Script file): `trigger.gs`. Copy/paste the contents from that file in this repo to your new script, completely overwriting the default `myFunction` code in your new script. Repeat this for the rest of the `.gs` script files.
 
