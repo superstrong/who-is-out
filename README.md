@@ -45,7 +45,7 @@ Just invite the new `out@<yourdomain.com>` user to your vacation/offsite/sick da
 
 ### As the new `out@` user
 - Copy [this Sheet](https://docs.google.com/spreadsheets/d/17jFYPIpLOCNBJOKdDi1ej9i7ZkUhdYcvEq_eBqFZ6NU/edit?usp=sharing) and save to `My Drive`
-- Share it with yourself (your real email address) with full write access so you can access it easily in the future
+- Share it with yourself (your real email address) with full write access so you can access it easily in the future. (Note: if you edit the sheet at your personal account, be careful not to edit or run the *scripts* unless you're using the special out@ user.)
 - Recommended: Protect the `Instructions`, `Setup`, and `Flattened Groups` tabs so others don't mistakenly overwrite them
 - Add your email address to `A1` in the `Setup` tab
 - For each group that wants to use this, fill out the rows in the `Groups` tab. You can do it yourself or share with others.
